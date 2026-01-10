@@ -11,6 +11,7 @@
   "dependencies": {
     "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@radix-ui/react-icons": "^1.3.2",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@turf/area": "^7.3.1",
     "@turf/bbox": "^7.3.1",
     "@turf/circle": "^7.3.1",

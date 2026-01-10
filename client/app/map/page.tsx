@@ -340,7 +340,7 @@ export default function MapPage() {
           type: "clip",
           source: "deleted-areas",
           layout: {
-            "clip-layer-types": ["model"],
+            "clip-layer-types": ["model", "symbol"],
             "clip-layer-scope": ["basemap"],
           },
         });
@@ -400,6 +400,7 @@ export default function MapPage() {
           selectedBuilding={selectedBuilding}
           onClose={clearSelection}
           onDeleteArea={selectedBuilding.polygon ? () => handleDeleteArea(selectedBuilding.polygon!) : undefined}
+          onActivateDeleteTool={() => setActiveTool("draw")}
           isLoading={isLoadingAddress}
           accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""}
         />

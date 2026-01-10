@@ -9,6 +9,7 @@ import {
   SizeIcon,
   RulerSquareIcon,
   DimensionsIcon,
+  CubeIcon,
 } from "@radix-ui/react-icons";
 
 interface SelectedBuilding {
@@ -30,6 +31,7 @@ interface BuildingDetailsPanelProps {
   drawnArea?: DrawnArea;
   onClose: () => void;
   onDeleteArea?: () => void;
+  onActivateDeleteTool?: () => void;
   isLoading?: boolean;
   accessToken: string;
 }
@@ -39,6 +41,7 @@ export function BuildingDetailsPanel({
   drawnArea,
   onClose,
   onDeleteArea,
+  onActivateDeleteTool,
   isLoading = false,
   accessToken,
 }: BuildingDetailsPanelProps) {
@@ -146,17 +149,17 @@ export function BuildingDetailsPanel({
             {/* Action buttons */}
             <div className="mt-4 space-y-2">
               <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all text-sm">
-                <UpdateIcon width={16} height={16} />
-                <span>Replace Model</span>
+                <CubeIcon width={16} height={16} />
+                <span>Insert Model</span>
               </button>
               <button
-                onClick={onDeleteArea}
-                disabled={!onDeleteArea}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
-                  onDeleteArea
-                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200"
-                    : "bg-white/5 text-white/30 cursor-not-allowed"
-                }`}
+                onClick={() => {
+                  if (onActivateDeleteTool) {
+                    onActivateDeleteTool();
+                    onClose();
+                  }
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all text-sm"
               >
                 <TrashIcon width={16} height={16} />
                 <span>Delete</span>
