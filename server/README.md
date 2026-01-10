@@ -1,124 +1,159 @@
-# TripoSR API Server
+# TRELLIS 3D Generation Server (Hugging Face)
 
-Lightweight FastAPI server that proxies 3D mesh generation requests to Modal's GPU-powered TripoSR service.
+This FastAPI server provides image-to-3D mesh generation using Microsoft's TRELLIS via **Hugging Face Spaces** (free!).
 
-## Architecture
+## Features
 
-```
-User → Next.js Frontend → FastAPI Server (this) → Modal TripoSR Service (GPU) → Returns .obj file
-```
+✅ **Free** - Uses Hugging Face's free tier
+✅ **No GPU needed locally** - Runs on HF's cloud GPUs
+✅ **Production-quality** - Microsoft TRELLIS model
+✅ **Easy setup** - Just install dependencies
 
-This server:
-- Receives image uploads from frontend
-- Forwards to Modal API for GPU processing
-- Returns downloadable 3D mesh files
-- **No local GPU or heavy ML dependencies needed!**
-
-## Setup
+## Quick Start
 
 ### 1. Install Dependencies
 
 ```bash
-cd server
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies (lightweight!)
+cd /Users/jamesli/Documents/Code4/mapbox-delta/server
 pip install -r requirements.txt
 ```
 
-### 2. Deploy Modal Service
-
-First, set up the Modal backend (see `../modal/TRIPOSR_README.md`):
-
-```bash
-# Install Modal
-pip install modal
-
-# Authenticate
-modal token new
-
-# Deploy the GPU service
-cd ../modal
-modal serve triposr_service.py
-```
-
-Copy the Modal endpoint URL you receive.
-
-### 3. Configure Endpoint
-
-Set the Modal endpoint URL as an environment variable:
-
-```bash
-export MODAL_ENDPOINT="https://yourname--triposr-service-triposrservice-generate-mesh.modal.run"
-```
-
-Or edit `server.py` directly and update the `MODAL_ENDPOINT` variable.
-
-### 4. Run Server
+### 2. Run the Server
 
 ```bash
 python server.py
 ```
 
-Server runs at `http://localhost:8000`
+Server will start on `http://localhost:8000`
 
-## API Endpoints
+### 3. Test It
 
-- `GET /` - Server info and health status
-- `GET /health` - Health check
-- `POST /upload` - Upload image file
-- `POST /generate-mesh` - Generate 3D mesh from image (calls Modal)
-- `GET /download/{filename}` - Download generated mesh file
-- `DELETE /cleanup` - Clean up uploaded/generated files
+Visit `http://localhost:8000/docs` for interactive API docs.
 
-### Interactive Docs
-
-Visit `http://localhost:8000/docs` for Swagger UI
-
-## Usage
-
+Or test with curl:
 ```bash
-# Generate mesh from image
 curl -X POST "http://localhost:8000/generate-mesh" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@/path/to/image.jpg"
-
-# Response includes download URL
-# Download the mesh
-curl -O "http://localhost:8000/download/yourimage.obj"
+  -F "file=@your-image.jpg"
 ```
 
-## Requirements
+## How It Works
 
-- Python 3.10+ (tested on 3.14.2)
-- No GPU needed (Modal handles GPU compute)
-- Minimal dependencies (FastAPI + requests)
+```
+User uploads image
+    ↓
+Your FastAPI Server (localhost:8000)
+    ↓
+Hugging Face Spaces (JeffreyXiang/TRELLIS-Demo)
+    ↓
+TRELLIS generates 3D mesh on HF's GPU (free!)
+    ↓
+GLB file returned to user
+```
 
-## Modal Backend
+## Endpoints
 
-The actual 3D generation happens on Modal's infrastructure:
-- **GPU**: A10G (configurable)
-- **Auto-scaling**: Scales to 0 when idle
-- **Pay-per-use**: Only pay for compute time
-- **Fast**: 5-10 seconds per mesh on GPU
+### `GET /`
+Health check and server info
 
-See `../modal/TRIPOSR_README.md` for Modal setup details.
+### `GET /health`
+Health check endpoint
+
+### `POST /generate-mesh`
+Upload an image, get a 3D mesh (.glb file)
+
+**Input:**
+- `file`: Image file (JPG, PNG, etc.)
+
+**Output:**
+```json
+{
+  "status": "success",
+  "message": "Mesh generation completed via Hugging Face",
+  "input_file": "building.jpg",
+  "output_file": "building.glb",
+  "download_url": "/download/building.glb",
+  "format": "glb"
+}
+```
+
+### `GET /download/{filename}`
+Download generated mesh file
+
+## Performance
+
+**First request**: 30-60 seconds (HF Space needs to load)
+**Subsequent requests**: 15-30 seconds per mesh
+
+⚠️ **HF Spaces can timeout** if many people are using it. If this happens:
+- Try again (it usually works on retry)
+- Or upgrade to fal.ai ($0.25/mesh) or Modal (needs setup)
+
+## Output Format
+
+TRELLIS outputs **GLB files**, which include:
+- 3D geometry
+- PBR materials (roughness, metallic)
+- Can be viewed in:
+  - Blender
+  - three.js (web)
+  - Any 3D viewer
+
+## Limitations
+
+❌ **Shared resources** - HF Spaces is free but shared
+❌ **Can timeout** - If server is busy
+❌ **Slower than paid options** - But free!
+✅ **Good quality** - Same model as fal.ai
+
+## Input Requirements
+
+Works best with:
+- **Single objects** (buildings, furniture, products)
+- **Clear images** with good lighting
+- **Simple backgrounds** (auto-removed)
 
 ## Cost
 
-Local server: **Free** (no GPU needed)
-Modal backend: **~$0.001-0.003 per mesh generation**
+**$0** - Completely free!
 
 ## Troubleshooting
 
-**Connection errors to Modal:**
-- Verify Modal service is running: `modal app list`
-- Check `MODAL_ENDPOINT` is set correctly
-- Check Modal logs: `modal app logs triposr-service`
+### "Connection timeout"
+HF Space is overloaded. Wait and try again.
 
-**Server won't start:**
-- Activate virtual environment: `source venv/bin/activate`
-- Install dependencies: `pip install -r requirements.txt`
+### "Space is building"
+First request after idle. Wait 30-60 seconds.
+
+### "Model not found"
+The HF Space might be down. Check: https://huggingface.co/spaces/JeffreyXiang/TRELLIS-Demo
+
+### GLB file won't open
+Try viewing in:
+- Blender (free)
+- https://gltf-viewer.donmccurdy.com/
+- three.js viewer online
+
+## Upgrading
+
+If HF Spaces is too slow or unreliable:
+
+**Option 1: fal.ai** ($0.25/mesh)
+- Same model
+- Faster, more reliable
+- Requires API key and payment
+
+**Option 2: Modal** (DIY, ~$0.01/mesh)
+- Deploy your own instance
+- Full control
+- More complex setup
+
+## Next Steps
+
+1. Test with your building images
+2. If quality is good but too slow → Consider fal.ai
+3. If quality not good for buildings → Try photogrammetry instead
+
+## Support
+
+- Hugging Face Space: https://huggingface.co/spaces/JeffreyXiang/TRELLIS-Demo
+- TRELLIS repo: https://github.com/microsoft/TRELLIS.2

@@ -7,9 +7,9 @@ from pathlib import Path
 import base64
 import requests
 
-app = FastAPI(title="TripoSR Server")
+app = FastAPI(title="TripoSR 3D Generation Server (Modal)")
 
-# Modal endpoint URL - Update this after deploying to Modal
+# Modal endpoint - Set this after deploying to Modal
 # Get this URL by running: modal serve modal/triposr_service.py
 MODAL_ENDPOINT = os.getenv(
     "MODAL_ENDPOINT",
@@ -35,9 +35,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 @app.get("/")
 async def root():
     return {
-        "message": "TripoSR API Server (Modal-powered)",
+        "message": "TripoSR 3D Generation API Server (Modal)",
         "status": "running",
-        "version": "2.0.0",
+        "version": "3.0.0",
+        "model": "StabilityAI TripoSR",
+        "backend": "Modal (GPU)",
         "modal_endpoint": MODAL_ENDPOINT
     }
 
@@ -84,22 +86,21 @@ async def generate_mesh(file: UploadFile = File(...)):
         if not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
 
+        print(f"Processing image: {file.filename}")
+        print(f"Calling Modal endpoint: {MODAL_ENDPOINT}")
+
         # Read file content
         content = await file.read()
 
         # Encode image as base64
         image_base64 = base64.b64encode(content).decode('utf-8')
 
-        print(f"Processing image: {file.filename}")
-        print(f"Calling Modal endpoint: {MODAL_ENDPOINT}")
-
         # Call Modal endpoint
         response = requests.post(
             f"{MODAL_ENDPOINT}/generate_mesh",
             json={
                 "image_base64": image_base64,
-                "remove_background": True,
-                "foreground_ratio": 0.85
+                "remove_background": True
             },
             timeout=300  # 5 minute timeout
         )
@@ -118,7 +119,7 @@ async def generate_mesh(file: UploadFile = File(...)):
                 detail=f"Mesh generation failed: {result.get('message', 'Unknown error')}"
             )
 
-        # Decode and save the OBJ file
+        # Decode and save the OBJ file (TripoSR outputs OBJ)
         obj_bytes = base64.b64decode(result["obj_base64"])
         output_filename = f"{Path(file.filename).stem}.obj"
         output_path = OUTPUT_DIR / output_filename
@@ -128,11 +129,12 @@ async def generate_mesh(file: UploadFile = File(...)):
 
         return {
             "status": "success",
-            "message": "Mesh generation completed",
+            "message": "Mesh generation completed via Modal TripoSR",
             "input_file": file.filename,
             "output_file": output_filename,
             "output_path": str(output_path),
-            "download_url": f"/download/{output_filename}"
+            "download_url": f"/download/{output_filename}",
+            "format": "obj"
         }
 
     except requests.exceptions.RequestException as e:
@@ -140,6 +142,8 @@ async def generate_mesh(file: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail=f"Modal API unavailable: {str(e)}")
     except Exception as e:
         print(f"Error generating mesh: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
