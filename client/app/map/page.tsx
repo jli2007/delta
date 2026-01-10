@@ -9,6 +9,7 @@ import area from "@turf/area";
 import bbox from "@turf/bbox";
 import { Toolbar } from "@/components/Toolbar";
 import { BuildingDetailsPanel } from "@/components/BuildingDetailsPanel";
+import { TeleportModal } from "@/components/TeleportModal";
 
 interface SelectedBuilding {
   id: string | number;
@@ -89,6 +90,19 @@ export default function MapPage() {
     if (drawRef.current) {
       drawRef.current.deleteAll();
     }
+  }, []);
+
+  const handleTeleport = useCallback((coordinates: [number, number]) => {
+    if (map.current) {
+      map.current.flyTo({
+        center: coordinates,
+        zoom: 15.5,
+        pitch: 60,
+        bearing: -17.6,
+        duration: 2000,
+      });
+    }
+    setActiveTool(null);
   }, []);
 
   // Clear selection when tool changes
@@ -395,6 +409,12 @@ export default function MapPage() {
   return (
     <div className="relative h-screen w-full">
       <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+      {activeTool === "teleport" && (
+        <TeleportModal
+          onClose={() => setActiveTool(null)}
+          onTeleport={handleTeleport}
+        />
+      )}
       {selectedBuilding && (
         <BuildingDetailsPanel
           selectedBuilding={selectedBuilding}

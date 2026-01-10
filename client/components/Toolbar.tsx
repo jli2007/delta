@@ -18,7 +18,7 @@ export function Toolbar({ activeTool, setActiveTool }: ToolbarProps) {
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
-                onClick={() => setActiveTool("select")}
+                onClick={() => setActiveTool(activeTool === "select" ? null : "select")}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-10 ${
                   activeTool === "select"
                     ? "bg-white/20 text-white shadow-lg"
@@ -44,7 +44,7 @@ export function Toolbar({ activeTool, setActiveTool }: ToolbarProps) {
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
-                onClick={() => setActiveTool("teleport")}
+                onClick={() => setActiveTool(activeTool === "teleport" ? null : "teleport")}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-10 ${
                   activeTool === "teleport"
                     ? "bg-white/20 text-white shadow-lg"
@@ -70,7 +70,7 @@ export function Toolbar({ activeTool, setActiveTool }: ToolbarProps) {
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
-                onClick={() => setActiveTool("draw")}
+                onClick={() => setActiveTool(activeTool === "draw" ? null : "draw")}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-10 ${
                   activeTool === "draw"
                     ? "bg-white/20 text-white shadow-lg"
