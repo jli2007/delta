@@ -7,7 +7,9 @@ interface PendingModel {
   file: File;
   url: string;
   scale: number;
-  rotation: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
 }
 
 interface InsertModelModalProps {
@@ -18,8 +20,10 @@ interface InsertModelModalProps {
 export function InsertModelModal({ onClose, onPlaceModel }: InsertModelModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [scale, setScale] = useState(0.1);
-  const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(0.01);
+  const [rotationX, setRotationX] = useState(0);
+  const [rotationY, setRotationY] = useState(0);
+  const [rotationZ, setRotationZ] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -61,7 +65,9 @@ export function InsertModelModal({ onClose, onPlaceModel }: InsertModelModalProp
         file: selectedFile,
         url: fileUrl,
         scale,
-        rotation,
+        rotationX,
+        rotationY,
+        rotationZ,
       });
     }
   };
@@ -124,34 +130,66 @@ export function InsertModelModal({ onClose, onPlaceModel }: InsertModelModalProp
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <label className="text-white/70 text-sm">Scale</label>
-            <span className="text-white/50 text-sm">{scale.toFixed(2)}x</span>
+            <span className="text-white/50 text-sm">{scale.toFixed(3)}x</span>
           </div>
           <input
             type="range"
-            min="0.01"
-            max="1"
-            step="0.01"
+            min="0.001"
+            max="0.5"
+            step="0.001"
             value={scale}
             onChange={(e) => setScale(parseFloat(e.target.value))}
             className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
           />
         </div>
 
-        {/* Rotation slider */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-white/70 text-sm">Rotation</label>
-            <span className="text-white/50 text-sm">{rotation}°</span>
+        {/* Rotation sliders */}
+        <div className="mb-6 space-y-3">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-white/70 text-sm">Rotation X (Pitch)</label>
+              <span className="text-white/50 text-sm">{rotationX}°</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="1"
+              value={rotationX}
+              onChange={(e) => setRotationX(parseInt(e.target.value))}
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            />
           </div>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value={rotation}
-            onChange={(e) => setRotation(parseInt(e.target.value))}
-            className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-          />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-white/70 text-sm">Rotation Y (Roll)</label>
+              <span className="text-white/50 text-sm">{rotationY}°</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="1"
+              value={rotationY}
+              onChange={(e) => setRotationY(parseInt(e.target.value))}
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-white/70 text-sm">Rotation Z (Yaw)</label>
+              <span className="text-white/50 text-sm">{rotationZ}°</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="1"
+              value={rotationZ}
+              onChange={(e) => setRotationZ(parseInt(e.target.value))}
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            />
+          </div>
         </div>
 
         {/* Action buttons */}

@@ -8,7 +8,9 @@ interface InsertedModel {
   position: [number, number];
   modelUrl: string;
   scale: number;
-  rotation: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
 }
 
 interface AssetManagerPanelProps {
@@ -16,7 +18,7 @@ interface AssetManagerPanelProps {
   onClose: () => void;
   onFlyTo: (position: [number, number]) => void;
   onDelete: (id: string) => void;
-  onUpdateModel: (id: string, updates: { scale?: number; rotation?: number }) => void;
+  onUpdateModel: (id: string, updates: { scale?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => void;
 }
 
 export function AssetManagerPanel({
@@ -27,13 +29,21 @@ export function AssetManagerPanel({
   onUpdateModel,
 }: AssetManagerPanelProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingField, setEditingField] = useState<"scale" | "rotation" | null>(null);
+  const [editingField, setEditingField] = useState<"scale" | "rotationX" | "rotationY" | "rotationZ" | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleStartEdit = (model: InsertedModel, field: "scale" | "rotation") => {
+  const handleStartEdit = (model: InsertedModel, field: "scale" | "rotationX" | "rotationY" | "rotationZ") => {
     setEditingId(model.id);
     setEditingField(field);
-    setEditValue(field === "scale" ? model.scale.toFixed(2) : model.rotation.toString());
+    if (field === "scale") {
+      setEditValue(model.scale.toFixed(3));
+    } else if (field === "rotationX") {
+      setEditValue(model.rotationX.toString());
+    } else if (field === "rotationY") {
+      setEditValue(model.rotationY.toString());
+    } else {
+      setEditValue(model.rotationZ.toString());
+    }
   };
 
   const handleSaveEdit = (modelId: string) => {
@@ -42,10 +52,10 @@ export function AssetManagerPanel({
       if (!isNaN(newScale) && newScale > 0) {
         onUpdateModel(modelId, { scale: newScale });
       }
-    } else if (editingField === "rotation") {
+    } else if (editingField) {
       const newRotation = parseInt(editValue);
       if (!isNaN(newRotation)) {
-        onUpdateModel(modelId, { rotation: newRotation % 360 });
+        onUpdateModel(modelId, { [editingField]: newRotation % 360 });
       }
     }
     setEditingId(null);
@@ -62,7 +72,7 @@ export function AssetManagerPanel({
   };
 
   return (
-    <div className="absolute bottom-8 left-4 z-10 w-64 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
+    <div className="absolute bottom-8 left-4 z-10 w-80 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -98,47 +108,94 @@ export function AssetManagerPanel({
                   <p className="text-white text-xs font-medium truncate">
                     Model {index + 1}
                   </p>
-                  <div className="flex items-center gap-2 text-white/40 text-[10px]">
+                  <div className="flex items-center gap-1 text-white/40 text-[10px] flex-wrap">
                     {editingId === model.id && editingField === "scale" ? (
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={() => handleSaveEdit(model.id)}
-                        onKeyDown={(e) => handleKeyDown(e, model.id)}
-                        className="w-12 px-1 py-0.5 bg-white/10 border border-white/20 rounded text-white text-[10px] focus:outline-none focus:border-cyan-500"
-                        step="0.01"
-                        min="0.01"
-                        autoFocus
-                      />
+                      <span className="text-cyan-400">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleSaveEdit(model.id)}
+                          onKeyDown={(e) => handleKeyDown(e, model.id)}
+                          className="w-12 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          autoFocus
+                        />x
+                      </span>
                     ) : (
                       <button
                         onClick={() => handleStartEdit(model, "scale")}
                         className="hover:text-cyan-400 transition-colors"
                         title="Click to edit scale"
                       >
-                        {model.scale.toFixed(2)}x
+                        {model.scale.toFixed(3)}x
                       </button>
                     )}
                     <span>·</span>
-                    {editingId === model.id && editingField === "rotation" ? (
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={() => handleSaveEdit(model.id)}
-                        onKeyDown={(e) => handleKeyDown(e, model.id)}
-                        className="w-12 px-1 py-0.5 bg-white/10 border border-white/20 rounded text-white text-[10px] focus:outline-none focus:border-cyan-500"
-                        step="1"
-                        autoFocus
-                      />
+                    {editingId === model.id && editingField === "rotationX" ? (
+                      <span className="text-cyan-400">
+                        X:<input
+                          type="text"
+                          inputMode="numeric"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleSaveEdit(model.id)}
+                          onKeyDown={(e) => handleKeyDown(e, model.id)}
+                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          autoFocus
+                        />°
+                      </span>
                     ) : (
                       <button
-                        onClick={() => handleStartEdit(model, "rotation")}
+                        onClick={() => handleStartEdit(model, "rotationX")}
                         className="hover:text-cyan-400 transition-colors"
-                        title="Click to edit rotation"
+                        title="Rotation X (Pitch)"
                       >
-                        {model.rotation}°
+                        X:{model.rotationX}°
+                      </button>
+                    )}
+                    {editingId === model.id && editingField === "rotationY" ? (
+                      <span className="text-cyan-400">
+                        Y:<input
+                          type="text"
+                          inputMode="numeric"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleSaveEdit(model.id)}
+                          onKeyDown={(e) => handleKeyDown(e, model.id)}
+                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          autoFocus
+                        />°
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEdit(model, "rotationY")}
+                        className="hover:text-cyan-400 transition-colors"
+                        title="Rotation Y (Roll)"
+                      >
+                        Y:{model.rotationY}°
+                      </button>
+                    )}
+                    {editingId === model.id && editingField === "rotationZ" ? (
+                      <span className="text-cyan-400">
+                        Z:<input
+                          type="text"
+                          inputMode="numeric"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleSaveEdit(model.id)}
+                          onKeyDown={(e) => handleKeyDown(e, model.id)}
+                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          autoFocus
+                        />°
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEdit(model, "rotationZ")}
+                        className="hover:text-cyan-400 transition-colors"
+                        title="Rotation Z (Yaw)"
+                      >
+                        Z:{model.rotationZ}°
                       </button>
                     )}
                   </div>

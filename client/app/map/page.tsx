@@ -31,7 +31,9 @@ interface PendingModel {
   file: File;
   url: string;
   scale: number;
-  rotation: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
 }
 
 interface InsertedModel {
@@ -39,7 +41,9 @@ interface InsertedModel {
   position: [number, number];
   modelUrl: string;
   scale: number;
-  rotation: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
 }
 
 async function reverseGeocode(
@@ -331,7 +335,9 @@ export default function MapPage() {
           properties: {
             "model-uri": m.modelUrl,
             "scale": m.scale,
-            "rotation": m.rotation,
+            "rotationX": m.rotationX,
+            "rotationY": m.rotationY,
+            "rotationZ": m.rotationZ,
           },
           geometry: {
             type: "Point" as const,
@@ -352,7 +358,7 @@ export default function MapPage() {
   }, [updateModelsSource]);
 
   // Update a model's scale or rotation
-  const handleUpdateModel = useCallback((modelId: string, updates: { scale?: number; rotation?: number }) => {
+  const handleUpdateModel = useCallback((modelId: string, updates: { scale?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
     setInsertedModels(prev => {
       const updated = prev.map(m =>
         m.id === modelId ? { ...m, ...updates } : m
@@ -372,7 +378,9 @@ export default function MapPage() {
       position: [e.lngLat.lng, e.lngLat.lat],
       modelUrl: pending.url,
       scale: pending.scale,
-      rotation: pending.rotation,
+      rotationX: pending.rotationX,
+      rotationY: pending.rotationY,
+      rotationZ: pending.rotationZ,
     };
 
     setInsertedModels(prev => {
@@ -596,7 +604,7 @@ export default function MapPage() {
           },
           paint: {
             "model-opacity": 1,
-            "model-rotation": [0, 0, ["get", "rotation"]],
+            "model-rotation": [["get", "rotationX"], ["get", "rotationY"], ["get", "rotationZ"]],
             "model-scale": [["get", "scale"], ["get", "scale"], ["get", "scale"]],
             "model-cast-shadows": true,
             "model-emissive-strength": 0.6,
