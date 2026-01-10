@@ -12,6 +12,7 @@ import { BuildingDetailsPanel } from "@/components/BuildingDetailsPanel";
 import { TeleportModal } from "@/components/TeleportModal";
 import { InsertModelModal } from "@/components/InsertModelModal";
 import { AssetManagerPanel } from "@/components/AssetManagerPanel";
+import { Prompt3DGenerator } from "@/components/Prompt3DGenerator";
 
 interface SelectedBuilding {
   id: string | number;
@@ -93,6 +94,7 @@ export default function MapPage() {
   const [drawnArea, setDrawnArea] = useState<DrawnArea | null>(null);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [deletedFeatures, setDeletedFeatures] = useState<GeoJSON.Feature[]>([]);
+  const [showPromptGenerator, setShowPromptGenerator] = useState(false);
   const [redoStack, setRedoStack] = useState<GeoJSON.Feature[]>([]);
   const [pendingModel, setPendingModel] = useState<PendingModel | null>(null);
   const [insertedModels, setInsertedModels] = useState<InsertedModel[]>([]);
@@ -639,6 +641,8 @@ export default function MapPage() {
           setActiveTool={setActiveTool}
           showAssetManager={showAssetManager}
           onToggleAssetManager={() => setShowAssetManager(!showAssetManager)}
+          showPromptGenerator={showPromptGenerator}
+          onTogglePromptGenerator={() => setShowPromptGenerator(!showPromptGenerator)}
         />
       {activeTool === "teleport" && (
         <TeleportModal
@@ -682,6 +686,16 @@ export default function MapPage() {
           onFlyTo={handleFlyToModel}
           onDelete={handleDeleteModel}
           onUpdateModel={handleUpdateModel}
+        />
+      )}
+      {showPromptGenerator && (
+        <Prompt3DGenerator
+          onClose={() => setShowPromptGenerator(false)}
+          onGenerate={(prompt) => {
+            console.log("Generated prompt:", prompt);
+            // TODO: Integrate with 3D generation API
+            // For now, just log it
+          }}
         />
       )}
       <div ref={mapContainer} className="h-full w-full" />
