@@ -28,7 +28,7 @@ modal token new
 ### 2. Serve the Service
 
 ```bash
-modal serve 15_3d_modeling_service/3d_rendering_service.py
+modal modal/3d_rendering_service.py
 ```
 
 This will start a development server with auto-reload. You'll see URLs for:
