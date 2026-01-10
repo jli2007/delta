@@ -130,7 +130,7 @@ export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleA
                 onClick={onTogglePromptGenerator}
                 className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-10 ${
                   showPromptGenerator
-                    ? "bg-cyan-500/20 text-cyan-400 shadow-lg border border-cyan-500/30"
+                    ? "bg-white/20 text-white shadow-lg"
                     : "text-white/60 hover:text-white hover:bg-white/10"
                 }`}
               >
