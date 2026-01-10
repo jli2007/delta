@@ -62,7 +62,7 @@ export function BuildingDetailsPanel({
   };
 
   return (
-    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-[18vw] min-w-[280px] max-w-[320px] flex flex-col rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
+    <div className="absolute right-4 top-[45%] -translate-y-1/2 z-10 w-[18vw] min-w-[280px] max-w-[320px] flex flex-col rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
       {/* Close button */}
       <button
         onClick={onClose}

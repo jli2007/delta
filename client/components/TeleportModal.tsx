@@ -17,7 +17,7 @@ const POPULAR_CITIES: City[] = [
   { name: "Dubai", country: "UAE", coordinates: [55.2708, 25.2048] },
   { name: "Sydney", country: "Australia", coordinates: [151.2093, -33.8688] },
   { name: "Singapore", country: "Singapore", coordinates: [103.8198, 1.3521] },
-  { name: "Hong Kong", country: "China", coordinates: [114.1694, 22.3193] },
+  { name: "San Francisco", country: "USA", coordinates: [-122.4194, 37.7749] },
   { name: "Los Angeles", country: "USA", coordinates: [-118.2437, 34.0522] },
 ];
 
@@ -65,6 +65,7 @@ const ALL_CITIES: City[] = [
   { name: "Manila", country: "Philippines", coordinates: [120.9842, 14.5995] },
   { name: "Ho Chi Minh City", country: "Vietnam", coordinates: [106.6297, 10.8231] },
   { name: "Shanghai", country: "China", coordinates: [121.4737, 31.2304] },
+  { name: "Hong Kong", country: "China", coordinates: [114.1694, 22.3193] },
   // Middle East
   { name: "Abu Dhabi", country: "UAE", coordinates: [54.3773, 24.4539] },
   { name: "Doha", country: "Qatar", coordinates: [51.5310, 25.2854] },

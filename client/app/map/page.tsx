@@ -10,6 +10,8 @@ import bbox from "@turf/bbox";
 import { Toolbar } from "@/components/Toolbar";
 import { BuildingDetailsPanel } from "@/components/BuildingDetailsPanel";
 import { TeleportModal } from "@/components/TeleportModal";
+import { InsertModelModal } from "@/components/InsertModelModal";
+import { AssetManagerPanel } from "@/components/AssetManagerPanel";
 
 interface SelectedBuilding {
   id: string | number;
@@ -23,6 +25,21 @@ interface DrawnArea {
   polygon: GeoJSON.Polygon;
   areaM2: number;
   dimensions: { width: number; depth: number };
+}
+
+interface PendingModel {
+  file: File;
+  url: string;
+  scale: number;
+  rotation: number;
+}
+
+interface InsertedModel {
+  id: string;
+  position: [number, number];
+  modelUrl: string;
+  scale: number;
+  rotation: number;
 }
 
 async function reverseGeocode(
@@ -67,16 +84,107 @@ export default function MapPage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const [activeTool, setActiveTool] = useState<"select" | "teleport" | "draw" | null>(null);
+  const [activeTool, setActiveTool] = useState<"select" | "teleport" | "draw" | "insert" | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<SelectedBuilding | null>(null);
   const [drawnArea, setDrawnArea] = useState<DrawnArea | null>(null);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [deletedFeatures, setDeletedFeatures] = useState<GeoJSON.Feature[]>([]);
+  const [redoStack, setRedoStack] = useState<GeoJSON.Feature[]>([]);
+  const [pendingModel, setPendingModel] = useState<PendingModel | null>(null);
+  const [insertedModels, setInsertedModels] = useState<InsertedModel[]>([]);
+  const [isPlacingModel, setIsPlacingModel] = useState(false);
+  const [showAssetManager, setShowAssetManager] = useState(false);
 
   const activeToolRef = useRef(activeTool);
+  const deletedFeaturesRef = useRef(deletedFeatures);
+  const redoStackRef = useRef(redoStack);
+  const pendingModelRef = useRef(pendingModel);
+  const insertedModelsRef = useRef(insertedModels);
+  const isPlacingModelRef = useRef(isPlacingModel);
+
+  useEffect(() => {
+    deletedFeaturesRef.current = deletedFeatures;
+  }, [deletedFeatures]);
+
+  useEffect(() => {
+    redoStackRef.current = redoStack;
+  }, [redoStack]);
   useEffect(() => {
     activeToolRef.current = activeTool;
   }, [activeTool]);
+
+  useEffect(() => {
+    pendingModelRef.current = pendingModel;
+  }, [pendingModel]);
+
+  useEffect(() => {
+    insertedModelsRef.current = insertedModels;
+  }, [insertedModels]);
+
+  useEffect(() => {
+    isPlacingModelRef.current = isPlacingModel;
+  }, [isPlacingModel]);
+
+  // Helper to update the deleted areas on the map
+  const updateDeletedAreasSource = useCallback((features: GeoJSON.Feature[]) => {
+    if (map.current) {
+      const source = map.current.getSource("deleted-areas") as mapboxgl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: "FeatureCollection",
+          features,
+        });
+      }
+    }
+  }, []);
+
+  // Undo last deletion
+  const handleUndo = useCallback(() => {
+    const currentDeleted = deletedFeaturesRef.current;
+    if (currentDeleted.length === 0) return;
+
+    const lastFeature = currentDeleted[currentDeleted.length - 1];
+    const newDeleted = currentDeleted.slice(0, -1);
+
+    setDeletedFeatures(newDeleted);
+    setRedoStack(prev => [...prev, lastFeature]);
+    updateDeletedAreasSource(newDeleted);
+  }, [updateDeletedAreasSource]);
+
+  // Redo last undone deletion
+  const handleRedo = useCallback(() => {
+    const currentRedo = redoStackRef.current;
+    if (currentRedo.length === 0) return;
+
+    const featureToRedo = currentRedo[currentRedo.length - 1];
+    const newRedo = currentRedo.slice(0, -1);
+
+    setRedoStack(newRedo);
+    setDeletedFeatures(prev => {
+      const newDeleted = [...prev, featureToRedo];
+      updateDeletedAreasSource(newDeleted);
+      return newDeleted;
+    });
+  }, [updateDeletedAreasSource]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modifier && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if (modifier && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   const clearSelection = useCallback(() => {
     setSelectedBuilding(null);
@@ -176,19 +284,12 @@ export default function MapPage() {
       properties: {},
     };
 
+    // Clear redo stack when new deletion is made
+    setRedoStack([]);
+
     setDeletedFeatures(prev => {
       const updated = [...prev, newFeature];
-
-      if (map.current) {
-        const source = map.current.getSource("deleted-areas") as mapboxgl.GeoJSONSource;
-        if (source) {
-          source.setData({
-            type: "FeatureCollection",
-            features: updated,
-          });
-        }
-      }
-
+      updateDeletedAreasSource(updated);
       return updated;
     });
 
@@ -198,7 +299,93 @@ export default function MapPage() {
     if (activeToolRef.current === "draw" && drawRef.current) {
       drawRef.current.changeMode("draw_polygon");
     }
-  }, [clearSelection]);
+  }, [clearSelection, updateDeletedAreasSource]);
+
+  // Handle placing model on map - called from modal
+  const handlePlaceModel = useCallback((model: PendingModel) => {
+    setPendingModel(model);
+    setIsPlacingModel(true);
+    setActiveTool(null); // Close modal but stay in placement mode
+  }, []);
+
+  // Fly to a model's position
+  const handleFlyToModel = useCallback((position: [number, number]) => {
+    if (map.current) {
+      map.current.flyTo({
+        center: position,
+        zoom: 18,
+        pitch: 60,
+        duration: 1500,
+      });
+    }
+  }, []);
+
+  // Update the custom models GeoJSON source
+  const updateModelsSource = useCallback((models: InsertedModel[]) => {
+    const source = map.current?.getSource("custom-models") as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData({
+        type: "FeatureCollection",
+        features: models.map(m => ({
+          type: "Feature" as const,
+          properties: {
+            "model-uri": m.modelUrl,
+            "scale": m.scale,
+            "rotation": m.rotation,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: m.position,
+          },
+        })),
+      });
+    }
+  }, []);
+
+  // Delete a model
+  const handleDeleteModel = useCallback((modelId: string) => {
+    setInsertedModels(prev => {
+      const updated = prev.filter(m => m.id !== modelId);
+      updateModelsSource(updated);
+      return updated;
+    });
+  }, [updateModelsSource]);
+
+  // Update a model's scale or rotation
+  const handleUpdateModel = useCallback((modelId: string, updates: { scale?: number; rotation?: number }) => {
+    setInsertedModels(prev => {
+      const updated = prev.map(m =>
+        m.id === modelId ? { ...m, ...updates } : m
+      );
+      updateModelsSource(updated);
+      return updated;
+    });
+  }, [updateModelsSource]);
+
+  // Handle map click for model placement
+  const handleModelPlacement = useCallback((e: mapboxgl.MapMouseEvent) => {
+    if (!isPlacingModelRef.current || !pendingModelRef.current || !map.current) return;
+
+    const pending = pendingModelRef.current;
+    const newModel: InsertedModel = {
+      id: `model-${Date.now()}`,
+      position: [e.lngLat.lng, e.lngLat.lat],
+      modelUrl: pending.url,
+      scale: pending.scale,
+      rotation: pending.rotation,
+    };
+
+    setInsertedModels(prev => {
+      const updated = [...prev, newModel];
+      updateModelsSource(updated);
+      return updated;
+    });
+
+    // Reset placement state and show asset manager
+    setPendingModel(null);
+    setIsPlacingModel(false);
+    setShowAssetManager(true);
+  }, [updateModelsSource]);
 
   const handleBuildingClick = useCallback(
     async (e: mapboxgl.MapMouseEvent) => {
@@ -392,28 +579,75 @@ export default function MapPage() {
             "line-opacity": 0.95,
           },
         });
+
+        // Add source for custom 3D models
+        map.current.addSource("custom-models", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        // Add native model layer for custom 3D models
+        map.current.addLayer({
+          id: "custom-models-layer",
+          type: "model",
+          source: "custom-models",
+          layout: {
+            "model-id": ["get", "model-uri"],
+          },
+          paint: {
+            "model-opacity": 1,
+            "model-rotation": [0, 0, ["get", "rotation"]],
+            "model-scale": [["get", "scale"], ["get", "scale"], ["get", "scale"]],
+            "model-cast-shadows": true,
+            "model-emissive-strength": 0.6,
+          },
+        } as mapboxgl.LayerSpecification);
       });
 
       map.current.on("click", handleBuildingClick);
+      map.current.on("click", handleModelPlacement);
     }
-  }, [handleBuildingClick, handleDrawCreate]);
+  }, [handleBuildingClick, handleDrawCreate, handleModelPlacement]);
 
-  // Update cursor based on active tool
+  // Update cursor based on active tool and placement mode
   useEffect(() => {
     if (map.current) {
-      const cursor = activeTool === "select" ? "pointer" : activeTool === "draw" ? "crosshair" : "";
+      let cursor = "";
+      if (isPlacingModel) {
+        cursor = "crosshair";
+      } else if (activeTool === "select") {
+        cursor = "pointer";
+      } else if (activeTool === "draw") {
+        cursor = "crosshair";
+      }
       map.current.getCanvas().style.cursor = cursor;
     }
-  }, [activeTool]);
+  }, [activeTool, isPlacingModel]);
 
   return (
     <div className="relative h-screen w-full">
-      <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+      <Toolbar
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          showAssetManager={showAssetManager}
+          onToggleAssetManager={() => setShowAssetManager(!showAssetManager)}
+        />
       {activeTool === "teleport" && (
         <TeleportModal
           onClose={() => setActiveTool(null)}
           onTeleport={handleTeleport}
         />
+      )}
+      {activeTool === "insert" && (
+        <InsertModelModal
+          onClose={() => setActiveTool(null)}
+          onPlaceModel={handlePlaceModel}
+        />
+      )}
+      {isPlacingModel && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-white text-sm">
+          Click on the map to place your model
+        </div>
       )}
       {selectedBuilding && (
         <BuildingDetailsPanel
@@ -431,6 +665,15 @@ export default function MapPage() {
           onClose={clearSelection}
           onDeleteArea={() => handleDeleteArea(drawnArea.polygon)}
           accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""}
+        />
+      )}
+      {showAssetManager && (
+        <AssetManagerPanel
+          models={insertedModels}
+          onClose={() => setShowAssetManager(false)}
+          onFlyTo={handleFlyToModel}
+          onDelete={handleDeleteModel}
+          onUpdateModel={handleUpdateModel}
         />
       )}
       <div ref={mapContainer} className="h-full w-full" />
