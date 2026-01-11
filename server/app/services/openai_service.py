@@ -1,4 +1,5 @@
 import json
+import asyncio
 from typing import Optional
 import openai
 
@@ -121,8 +122,8 @@ Respond in JSON format:
             f"{prompt}, 3/4 perspective view, architectural rendering"
         ][:num_images]
 
-        images = []
-        for view_prompt in view_prompts:
+        # Generate all images in parallel instead of sequentially
+        async def generate_single_image(view_prompt: str):
             response = await self._client.images.generate(
                 model="dall-e-3",
                 prompt=view_prompt,
@@ -131,9 +132,12 @@ Respond in JSON format:
                 style=style,
                 n=1
             )
-            images.append(response.data[0].url)
+            return response.data[0].url
+
+        # Run all image generations concurrently
+        images = await asyncio.gather(*[generate_single_image(p) for p in view_prompts])
 
         return ImageGenerateResponse(
-            images=images,
+            images=list(images),
             prompt_used=prompt
         )
