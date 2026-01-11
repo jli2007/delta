@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 // Quick actions that should auto-dismiss
 const QUICK_ACTIONS = ["set_weather", "set_time", "camera_control"];
@@ -31,7 +31,7 @@ interface SearchResult {
 }
 
 // Get icon and label for different action types
-function getActionDisplay(result: SearchResult): { icon: JSX.Element; label: string } {
+function getActionDisplay(result: SearchResult): { icon: React.ReactElement; label: string } {
   const action = result.action || result.intent?.action;
 
   switch (action) {

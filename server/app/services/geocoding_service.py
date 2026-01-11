@@ -96,7 +96,14 @@ class GeocodingService:
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
+            # Disable SSL verification for development (macOS Python 3.14 SSL cert issue)
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(
                     self.NOMINATIM_URL,
                     params=params,
@@ -172,7 +179,14 @@ class GeocodingService:
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
+            # Disable SSL verification for development (macOS Python 3.14 SSL cert issue)
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(
                     self.NOMINATIM_REVERSE_URL,
                     params=params,
