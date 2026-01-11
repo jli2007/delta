@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     port: int = int(os.environ.get("PORT", 8000))
     debug: bool = False
 
+    # Redis (optional - falls back to in-memory if not set)
+    redis_url: str = ""
+
     # Directories
     upload_dir: Path = Path("uploads")
     output_dir: Path = Path("outputs")

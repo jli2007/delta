@@ -23,6 +23,7 @@ multidict==6.7.0
 openai==1.58.1
 propcache==0.4.1
 pydantic==2.12.5
+redis==5.0.1
 pydantic-settings==2.7.1
 pydantic_core==2.41.5
 python-dotenv==1.2.1
