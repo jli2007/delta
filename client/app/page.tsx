@@ -16,6 +16,8 @@ export default function Home() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const demoMapContainerRef = useRef<HTMLDivElement>(null);
+  const demoMapRef = useRef<mapboxgl.Map | null>(null);
 
   const handleIntersection = (entries: IntersectionObserverEntry[]) => {
     entries.forEach((entry) => {
@@ -453,6 +455,44 @@ export default function Home() {
     };
   }, []); // Only run once on mount
 
+  // Initialize demo map for Mapbox section
+  useEffect(() => {
+    if (demoMapRef.current || !demoMapContainerRef.current) return;
+
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+    if (!mapboxgl.accessToken) {
+      console.warn("Mapbox token not found. Please set NEXT_PUBLIC_MAPBOX_TOKEN environment variable.");
+      return;
+    }
+
+    // Initialize a simpler interactive map for the demo
+    demoMapRef.current = new mapboxgl.Map({
+      container: demoMapContainerRef.current,
+      style: "mapbox://styles/mapbox/standard",
+      center: [-79.3832, 43.6532], // Downtown Toronto
+      zoom: 14,
+      pitch: 55,
+      bearing: -20,
+      interactive: true,
+      attributionControl: false,
+    });
+
+    // Add navigation controls
+    const nav = new mapboxgl.NavigationControl({
+      showCompass: true,
+      showZoom: true,
+    });
+    demoMapRef.current.addControl(nav, "top-right");
+
+    return () => {
+      if (demoMapRef.current) {
+        demoMapRef.current.remove();
+        demoMapRef.current = null;
+      }
+    };
+  }, []);
+
   // Adjust map based on current section for parallax effect
   // Note: This will temporarily pause continuous movement during section changes
   useEffect(() => {
@@ -532,7 +572,7 @@ export default function Home() {
       {/* <Navbar currentSection={currentSection} /> */}
 
       {/* Hero Section with Map */}
-    <section ref={heroSectionRef} data-section-id="0" className="relative h-screen snap-start">
+    <section ref={heroSectionRef} data-section-id="0" className="relative min-h-screen">
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 z-50 flex items-center">
           <div className="container mx-auto">
@@ -559,6 +599,137 @@ export default function Home() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about" data-section-id="2" className="relative bg-gray-50 min-h-screen flex items-center py-32">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <div className="inline-block px-4 py-2 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider mb-6">
+                About
+              </div>
+              <h2 className="text-5xl md:text-6xl font-bold mb-6 text-black leading-tight">
+                Transforming Urban Planning
+              </h2>
+            </div>
+
+            <div className="prose prose-lg max-w-none">
+              <p className="text-xl text-gray-700 mb-8 leading-relaxed">
+                Arcki is a comprehensive platform for real-time city editing and architectural visualization. Built on advanced 3D mapping technology, we enable urban planners, architects, and developers to visualize, modify, and plan city infrastructure with unprecedented precision.
+              </p>
+
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Our platform combines photorealistic 3D mapping with intelligent AI-powered tools, allowing professionals to generate building designs, modify existing structures, and explore urban development scenarios in real-time. Every change is rendered instantly, providing immediate visual feedback for informed decision-making.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-12 mt-16">
+                <div>
+                  <h3 className="text-2xl font-bold mb-4 text-black">Mission</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    To democratize access to professional-grade urban planning tools, making sophisticated 3D city modeling accessible to professionals and organizations of all sizes.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-4 text-black">Technology</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Powered by Mapbox's advanced 3D rendering engine and integrated AI services, our platform delivers enterprise-level capabilities with intuitive, user-friendly interfaces.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section 2 - Mapbox Demo */}
+      <section id="ai-powered" data-section-id="3" className="relative bg-white min-h-screen flex items-center py-32">
+        <div className="container mx-auto px-6 max-w-6xl">
+          {/* Header Section */}
+          <div className="text-center mb-16">
+            <div className="inline-block px-4 py-2 rounded-full bg-black text-white text-xs font-semibold uppercase tracking-wider mb-6">
+              Powered by Mapbox
+            </div>
+            <h2 className="text-5xl md:text-7xl font-bold mb-6 text-black leading-tight">
+              Photorealistic
+              <br />
+              <span className="text-gray-600">City Maps</span>
+            </h2>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
+              Experience cities in unprecedented detail. Every building, street, and landmark rendered in stunning 3D precision.
+            </p>
+          </div>
+
+          {/* Map Container - Larger and Prominent */}
+          <div className="mb-16">
+            <div className="relative w-full h-[600px] rounded-3xl overflow-hidden bg-gray-100 border-2 border-gray-200 shadow-2xl">
+              <div ref={demoMapContainerRef} className="w-full h-full" />
+            </div>
+          </div>
+
+          {/* Feature Grid - Horizontal Layout */}
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
+                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-black">3D Buildings</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Every structure accurately modeled with real-world dimensions and architectural details.
+              </p>
+            </div>
+
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
+                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-black">Global Coverage</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Explore cities worldwide with consistent high-quality 3D data and real-time updates.
+              </p>
+            </div>
+
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
+                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-black">Real-Time</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Smooth, responsive interactions powered by advanced WebGL rendering technology.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative bg-black text-white py-12">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">arcki.tech</h3>
+              <p className="text-gray-400 text-sm">Real-time City Editor</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4 uppercase tracking-wider">Navigation</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="#hero" className="hover:text-white transition-colors">Home</a></li>
+                <li><a href="#ai-powered" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="/map" className="hover:text-white transition-colors">Map</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-4 uppercase tracking-wider">Contact</h4>
+              <p className="text-sm text-gray-400">© {new Date().getFullYear()} All rights reserved</p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
