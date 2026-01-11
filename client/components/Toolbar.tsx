@@ -1,7 +1,6 @@
 "use client";
 
-import { CursorArrowIcon, GlobeIcon, InfoCircledIcon, Pencil2Icon, CubeIcon, StackIcon, SunIcon, MoonIcon } from "@radix-ui/react-icons";
-import { Sparkles } from "lucide-react";
+import { CursorArrowIcon, GlobeIcon, Pencil2Icon, CubeIcon, StackIcon, SunIcon, MoonIcon, MagicWandIcon } from "@radix-ui/react-icons";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 type ToolType = "select" | "teleport" | "draw" | "insert" | null;
@@ -136,7 +135,7 @@ export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleA
                     : "text-white/60 hover:text-white hover:bg-white/10"
                 }`}
               >
-                <Sparkles width={20} height={20} />
+                <MagicWandIcon width={20} height={20} />
                 <span className="text-[10px] font-medium">Generate</span>
               </button>
             </Tooltip.Trigger>
