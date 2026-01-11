@@ -313,12 +313,21 @@ export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlace
       onPlaceModel({
         file,
         url,
-        scale: 1,
+        scale: 50,
         rotationX: 0,
         rotationY: 0,
         rotationZ: 0,
       });
 
+      // Clear all state and localStorage before closing
+      localStorage.removeItem(STORAGE_KEY);
+      setIsPlacing(false);
+      setWorkflowStage("input");
+      setPreviewResult(null);
+      setThreeDJob(null);
+      setPrompt("");
+      setIsMinimized(false);
+      
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load model");
