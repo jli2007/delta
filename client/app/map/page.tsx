@@ -16,8 +16,7 @@ import { Prompt3DGenerator } from "@/components/Prompt3DGenerator";
 import { TransformGizmo } from "@/components/TransformGizmo";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchResultPopup } from "@/components/SearchResultPopup";
-import { HomeIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import Link from "next/link";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 
 interface SelectedBuilding {
   id: string | number;
@@ -1161,22 +1160,43 @@ export default function MapPage() {
         });
 
         // Add native model layer for custom 3D models
-        map.current.addLayer({
-          id: "custom-models-layer",
-          type: "model",
-          source: "custom-models",
-          layout: {
-            "model-id": ["get", "model-uri"],
-          },
-          paint: {
-            "model-opacity": 1,
-            "model-rotation": [["get", "rotationX"], ["get", "rotationY"], ["get", "rotationZ"]],
-            "model-scale": [["get", "scale"], ["get", "scale"], ["get", "scale"]],
-            "model-translation": [0, 0, ["get", "height"]],
-            "model-cast-shadows": true,
-            "model-emissive-strength": 0.6,
-          },
-        } as mapboxgl.LayerSpecification);
+        try {
+          map.current.addLayer({
+            id: "custom-models-layer",
+            type: "model",
+            source: "custom-models",
+            layout: {
+              "model-id": ["get", "model-uri"],
+            },
+            paint: {
+              "model-opacity": 1,
+              "model-rotation": [["get", "rotationX"], ["get", "rotationY"], ["get", "rotationZ"]],
+              "model-scale": [["get", "scale"], ["get", "scale"], ["get", "scale"]],
+              "model-translation": [0, 0, ["get", "height"]],
+              "model-cast-shadows": true,
+              "model-emissive-strength": 0.6,
+            },
+          } as mapboxgl.LayerSpecification);
+
+          // Model Loading failure catch
+          map.current.on("error", (e) => {
+            const errorMsg = e.error?.message || "";
+            if (errorMsg.includes("meshes is not iterable") || errorMsg.includes("t1.json")) {
+              console.error("Model loading error - GLB file may be malformed:", e);
+
+              // Find and remove the problematic model
+              setInsertedModels(prev => {
+                const updated = prev.slice(0, -1);
+                updateModelsSource(updated);
+                return updated;
+              });
+
+              alert("Failed to load 3D model. The generated file may be corrupted. Please try generating again.");
+            }
+          });
+        } catch (err) {
+          console.error("Error adding model layer:", err);
+        }
 
       });
 
@@ -1294,20 +1314,12 @@ export default function MapPage() {
 
   return (
     <div className="relative h-screen w-full">
-      {/* Home icon - top left */}
-      <Link
-        href="/"
-        className="absolute top-4 left-4 z-10 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all"
-      >
-        <HomeIcon width={20} height={20} />
-      </Link>
-
-      {/* GitHub icon - top right */}
+      {/* GitHub icon - top left */}
       <a
         href="https://github.com/jli2007/delta"
         target="_blank"
         rel="noopener noreferrer"
-        className="absolute top-4 right-4 z-10 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all"
+        className="absolute top-4 left-4 z-10 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all"
       >
         <GitHubLogoIcon width={20} height={20} />
       </a>
@@ -1360,12 +1372,12 @@ export default function MapPage() {
         onDelete={handleDeleteModel}
         onUpdateModel={handleUpdateModel}
       />
-      {showPromptGenerator && (
-        <Prompt3DGenerator
-          onClose={() => setShowPromptGenerator(false)}
-           onPlaceModel={handlePlaceModel}
-        />
-      )}
+      <Prompt3DGenerator
+        isVisible={showPromptGenerator}
+        onClose={() => setShowPromptGenerator(false)}
+        onRequestExpand={() => setShowPromptGenerator(true)}
+        onPlaceModel={handlePlaceModel}
+      />
       {selectedModelId && gizmoScreenPos && (
         <TransformGizmo
           screenPosition={gizmoScreenPos}

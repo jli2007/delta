@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Cross2Icon, CubeIcon, ReloadIcon, CheckCircledIcon, ExclamationTriangleIcon, ImageIcon, Pencil1Icon, ChevronLeftIcon, ChevronRightIcon, EnterFullScreenIcon } from "@radix-ui/react-icons";
+import { Cross2Icon, CubeIcon, ReloadIcon, CheckCircledIcon, ExclamationTriangleIcon, ImageIcon, Pencil1Icon, ChevronLeftIcon, ChevronRightIcon, EnterFullScreenIcon, MinusIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/lib/supabase";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const STORAGE_KEY = "prompt3d_generator_state";
 
 interface PendingModel {
   file: File;
@@ -16,7 +17,9 @@ interface PendingModel {
 }
 
 interface Prompt3DGeneratorProps {
+  isVisible: boolean;
   onClose: () => void;
+  onRequestExpand: () => void;
   onPlaceModel?: (model: PendingModel) => void;
 }
 
@@ -41,26 +44,83 @@ interface ThreeDJobResult {
 
 type WorkflowStage = "input" | "preview" | "placing";
 
-export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorProps) {
+interface GeneratorState {
+  prompt: string;
+  style: "architectural" | "modern" | "classical" | "futuristic";
+  numViews: number;
+  workflowStage: WorkflowStage;
+  previewResult: PreviewResult | null;
+  selectedImageIndex: number;
+  threeDJob: ThreeDJobResult | null;
+}
+
+export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlaceModel }: Prompt3DGeneratorProps) {
+  const [isMinimized, setIsMinimized] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<"architectural" | "modern" | "classical" | "futuristic">("architectural");
   const [numViews, setNumViews] = useState(1);
-  
+
   // Workflow state
   const [workflowStage, setWorkflowStage] = useState<WorkflowStage>("input");
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Preview state
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isExpandedView, setIsExpandedView] = useState(false);
-  
+
   // 3D generation state (runs silently in background)
   const [threeDJob, setThreeDJob] = useState<ThreeDJobResult | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
-  
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const state: GeneratorState = JSON.parse(saved);
+        setPrompt(state.prompt);
+        setStyle(state.style);
+        setNumViews(state.numViews);
+        setWorkflowStage(state.workflowStage);
+        setPreviewResult(state.previewResult);
+        setSelectedImageIndex(state.selectedImageIndex);
+        setThreeDJob(state.threeDJob);
+
+        // Resume polling if we have an active 3D job
+        if (state.previewResult && state.workflowStage === "preview") {
+          start3DGeneration(state.previewResult.job_id);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore generator state:", e);
+    }
+  }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const state: GeneratorState = {
+      prompt,
+      style,
+      numViews,
+      workflowStage,
+      previewResult,
+      selectedImageIndex,
+      threeDJob,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [prompt, style, numViews, workflowStage, previewResult, selectedImageIndex, threeDJob]);
+
+  // Auto-minimize when user switches to another tool
+  useEffect(() => {
+    if (!isVisible && !isMinimized) {
+      // User switched tools - auto-minimize to keep generation running
+      setIsMinimized(true);
+    }
+  }, [isVisible]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -74,7 +134,7 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
   // Start 3D generation automatically when preview is ready (silently in background)
   useEffect(() => {
     if (previewResult && workflowStage === "preview" && !threeDJob) {
-      start3DGeneration();
+      start3DGeneration(previewResult.job_id);
     }
   }, [previewResult, workflowStage]);
 
@@ -90,6 +150,7 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
       const response = await fetch(`${API_BASE}/generate-preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Send session cookie
         body: JSON.stringify({
           prompt,
           style,
@@ -114,15 +175,16 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
     }
   };
 
-  const start3DGeneration = async () => {
+  const start3DGeneration = async (jobId: string) => {
     if (!previewResult) return;
 
     try {
+      // Only start 3D if not already started
       const response = await fetch(`${API_BASE}/start-3d`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_id: previewResult.job_id,
+          job_id: jobId,
           image_urls: previewResult.image_urls,
           texture_size: 1024,
           use_multi: numViews > 1,
@@ -130,13 +192,20 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start 3D generation");
+        // May already be started - just continue polling
+        console.log("3D generation already started, resuming polling...");
       }
 
       // Start polling for 3D job status (silently)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`${API_BASE}/3d-job/${previewResult.job_id}`);
+          const statusRes = await fetch(`${API_BASE}/3d-job/${jobId}`, {
+            credentials: 'include' // Important: send session cookie
+          });
           if (!statusRes.ok) return;
 
           const status: ThreeDJobResult = await statusRes.json();
@@ -336,9 +405,9 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
   };
 
   const quickPrompts = [
-    { label: "Paris Haussmann", prompt: "Classic Parisian Haussmann-style building with ornate balconies and mansard roof" },
-    { label: "Modern Tower", prompt: "Sleek glass skyscraper with geometric facade patterns" },
-    { label: "Neo-Gothic", prompt: "Gothic revival cathedral with pointed arches and flying buttresses" },
+    { label: "Art Deco", prompt: "Art Deco skyscraper with geometric patterns, stepped facade, and ornamental metalwork" },
+    { label: "Brutalist", prompt: "Brutalist concrete building with bold geometric forms and exposed structural elements" },
+    { label: "Victorian", prompt: "Victorian-era building with decorative trim, bay windows, and colorful painted facade" },
   ];
 
   // Expanded Modal View
@@ -418,11 +487,64 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
     );
   };
 
+  // Clear state and close permanently
+  const handleClose = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setIsMinimized(false);
+    onClose();
+  };
+
+  // Don't render anything if never opened and no saved state
+  if (!isVisible && !isMinimized && workflowStage === "input" && !prompt && !previewResult) {
+    return null;
+  }
+
+  // Handle expanding from minimized state
+  const handleExpand = () => {
+    setIsMinimized(false);
+    // If not currently visible (user switched to another tool), request parent to show us
+    if (!isVisible) {
+      onRequestExpand();
+    }
+  };
+
+  // Minimized widget (shown when minimized OR when tool switched)
+  if (isMinimized || !isVisible) {
+    return (
+      <div className="absolute right-4 top-4 z-20">
+        <button
+          onClick={handleExpand}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl hover:bg-black/50 transition-all"
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 border border-white/20">
+            <CubeIcon width={16} height={16} className="text-white/80" />
+          </div>
+          <div className="flex flex-col items-start">
+            <span className="text-white font-semibold text-sm">3D Generator</span>
+            <span className="text-white/50 text-xs">
+              {workflowStage === "input" && "Ready to create"}
+              {workflowStage === "preview" && threeDJob?.status === "generating" && `${threeDJob.progress}% complete`}
+              {workflowStage === "preview" && threeDJob?.status === "completed" && "Model ready!"}
+              {workflowStage === "preview" && !threeDJob && "Previewing..."}
+              {workflowStage === "placing" && "Placing model..."}
+            </span>
+          </div>
+          {threeDJob?.status === "generating" && (
+            <ReloadIcon width={14} height={14} className="text-white/60 animate-spin ml-auto" />
+          )}
+          {threeDJob?.status === "completed" && (
+            <CheckCircledIcon width={14} height={14} className="text-green-400 ml-auto" />
+          )}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Expanded Modal */}
       <ExpandedModal />
-      
+
       {/* Main Panel */}
       <div className="absolute right-4 top-4 z-20 w-[420px] rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden">
         {/* Header */}
@@ -440,10 +562,11 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => setIsMinimized(true)}
             className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white/60 hover:text-white transition-all"
+            title="Minimize"
           >
-            <Cross2Icon width={16} height={16} />
+            <MinusIcon width={16} height={16} />
           </button>
         </div>
 
@@ -468,7 +591,7 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
 
               {/* Quick Prompts */}
               <div className="space-y-2">
-                <label className="text-white/70 text-sm font-medium">Suggestions</label>
+                <label className="text-white/70 text-sm font-medium">Popular Styles</label>
                 <div className="flex flex-wrap gap-2">
                   {quickPrompts.map((qp) => (
                     <button
@@ -543,6 +666,21 @@ export function Prompt3DGenerator({ onClose, onPlaceModel }: Prompt3DGeneratorPr
                   </>
                 )}
               </button>
+
+              {/* Clear & Start Over Button - only show if there's existing state */}
+              {(prompt || previewResult) && (
+                <button
+                  onClick={() => {
+                    if (confirm("Clear everything and start over?")) {
+                      handleClose();
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-black/40 hover:bg-black/60 text-white/60 hover:text-white text-sm transition-all"
+                >
+                  <Cross2Icon width={14} height={14} />
+                  <span>Clear & Start Over</span>
+                </button>
+              )}
 
               <p className="text-white/40 text-xs text-center">
                 Press ⌘ + Enter to generate

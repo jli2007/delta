@@ -28,6 +28,8 @@ IMPORTANT:
 - Handle typos and casual language gracefully (e.g., "mak it rain" -> set_weather, "nite mode" -> set_time)
 
 2. **location_query**: The location mentioned (city, landmark, address, neighborhood)
+   - **CRITICAL**: Fix any spelling errors in location names (e.g., "anjing" -> "Anqing", "pariss" -> "Paris", "tokyoo" -> "Tokyo")
+   - Use your knowledge to correct misspelled cities, landmarks, and place names
    - For famous landmarks, include the landmark name: "CN Tower, Toronto", "Burj Khalifa, Dubai"
    - Extract exact location names: "Central Park", "Tokyo", "Empire State Building"
    - If relative ("near here", "in this area", "around me"), set to null
@@ -69,6 +71,8 @@ Respond in JSON format:
 
 Examples:
 - "take me to the Eiffel Tower" -> {"action": "navigate", "location_query": "Eiffel Tower, Paris", ...}
+- "take me to anjing, anhui" -> {"action": "navigate", "location_query": "Anqing, Anhui", "reasoning": "Corrected spelling: anjing -> Anqing"}
+- "go to pariss" -> {"action": "navigate", "location_query": "Paris", "reasoning": "Corrected spelling: pariss -> Paris"}
 - "find the tallest building" -> {"action": "find_building", "location_query": null, "building_attributes": {"sort_by": "height", ...}, ...}
 - "make it rain" -> {"action": "set_weather", "weather_settings": {"type": "rain"}, "reasoning": "User wants rain effect"}
 - "switch to night" -> {"action": "set_time", "time_settings": {"preset": "night"}, "reasoning": "User wants night mode"}
