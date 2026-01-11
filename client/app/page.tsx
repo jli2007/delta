@@ -248,8 +248,7 @@ export default function Home() {
             <div style="
               font-size: 14px;
               font-weight: 600;
-              color: #00ffff;
-              text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+              color: #ffffff;
             ">${attraction.name}</div>
           </div>
         `)
@@ -538,26 +537,20 @@ export default function Home() {
         <div className="absolute inset-0 z-50 flex items-center">
           <div className="container mx-auto">
             <div className="max-w-4xl px-4">
-              <div className="mb-8 inline-flex items-center gap-2 border-l border-cyan-500/30 pl-4">
-                <span className="text-sm font-medium uppercase tracking-widest text-zinc-400">Real-time City Editor</span>
-              </div>
-              <h1 className="text-7xl font-bold mb-6 leading-tight text-left relative will-change-transform">
-                <span className="text-white font-sans [text-shadow:0_0_10px_#fff,0_0_20px_#00ffff] animate-[textGlow_3s_ease-in-out_infinite_alternate] will-change-transform">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-left">
+                <span className="text-white">
                   Build Cities.
                 </span>
                 <br />
-                <span className="text-white/70 font-sans [text-shadow:0_0_10px_#fff,0_0_20px_#00ffff] animate-[textGlow_3s_ease-in-out_infinite_alternate] will-change-transform">
+                <span className="text-white/90">
                   Replace Buildings.
                 </span>
               </h1>
-              <p className="text-[1.4rem] text-white/80 text-left max-w-2xl mb-2">
-                A professional urban planning platform for engineers and architects. Edit layouts, swap structures, and visualize changes in real-time across any city.
+              <p className="text-base md:text-lg text-white/80 text-left max-w-xl mb-6 leading-relaxed">
+                Edit layouts, swap structures, visualize changes in real-time.
               </p>
-              <p className="text-lg text-white/60 text-left max-w-xl mb-8">
-                Access to <span className="font-bold text-white">{formatNumber(photoCount)}</span>+ editable buildings worldwide. Powered by AI and real-time rendering.
-              </p>
-              <div className="mt-8 flex gap-4">
-                <Button size="lg" className="bg-cyan-500 text-black hover:bg-cyan-400 font-semibold" asChild>
+              <div className="mt-6 flex gap-4">
+                <Button size="default" className="bg-white text-black hover:bg-white/95 font-medium px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 border-0" asChild>
                   <a href="/map">Start Building</a>
                 </Button>
               </div>
