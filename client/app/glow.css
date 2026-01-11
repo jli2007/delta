@@ -43,9 +43,9 @@
 
 /* Building Popup Styles */
 .building-popup .mapboxgl-popup-content {
-  background: rgba(0, 0, 0, 0.85) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 12px !important;
   padding: 12px 16px !important;
   margin: 0 !important;
@@ -53,18 +53,5 @@
 }
 
 .building-popup .mapboxgl-popup-tip {
-  border-top-color: rgba(0, 255, 255, 0.3) !important;
-}
-
-.building-popup {
-  animation: popupGlow 2s ease-in-out infinite alternate;
-}
-
-@keyframes popupGlow {
-  from {
-    filter: drop-shadow(0 4px 20px rgba(0, 255, 255, 0.2));
-  }
-  to {
-    filter: drop-shadow(0 4px 30px rgba(0, 255, 255, 0.4));
-  }
+  border-top-color: rgba(255, 255, 255, 0.2) !important;
 }
