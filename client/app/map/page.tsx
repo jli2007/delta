@@ -8,6 +8,7 @@ import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import area from "@turf/area";
 import bbox from "@turf/bbox";
 import { Toolbar } from "@/components/Toolbar";
+import { WeatherPanel } from "@/components/WeatherPanel";
 import { BuildingDetailsPanel } from "@/components/BuildingDetailsPanel";
 import { TeleportModal } from "@/components/TeleportModal";
 import { InsertModelModal } from "@/components/InsertModelModal";
@@ -98,6 +99,7 @@ export default function MapPage() {
   const [deletedFeatures, setDeletedFeatures] = useState<GeoJSON.Feature[]>([]);
   const [showPromptGenerator, setShowPromptGenerator] = useState(false);
   const [lightMode, setLightMode] = useState<"day" | "night">("day");
+  const [weather, setWeather] = useState<"clear" | "rain" | "snow">("clear");
   const [redoStack, setRedoStack] = useState<GeoJSON.Feature[]>([]);
   const [pendingModel, setPendingModel] = useState<PendingModel | null>(null);
   const [insertedModels, setInsertedModels] = useState<InsertedModel[]>([]);
@@ -717,8 +719,6 @@ export default function MapPage() {
         bearing: -17.6,
       });
 
-      map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-
       // Initialize MapboxDraw
       drawRef.current = new MapboxDraw({
         displayControlsDefault: false,
@@ -855,6 +855,7 @@ export default function MapPage() {
             "model-emissive-strength": 0.6,
           },
         } as mapboxgl.LayerSpecification);
+
       });
 
       map.current.on("click", handleBuildingClick);
@@ -895,18 +896,56 @@ export default function MapPage() {
     }
   }, [lightMode]);
 
+  // Update weather effects (rain/snow)
+  useEffect(() => {
+    if (map.current && map.current.isStyleLoaded()) {
+      const mapInstance = map.current as any;
+      
+      if (weather === "rain") {
+        mapInstance.setSnow(null);
+        mapInstance.setRain({
+          intensity: 0.5,
+          color: "rgba(180, 220, 255, 0.5)",
+          opacity: 0.8,
+          density: 1.0,
+          direction: [0, 80],
+          centerThinning: 0.5,
+        });
+      } else if (weather === "snow") {
+        mapInstance.setRain(null);
+        mapInstance.setSnow({
+          intensity: 0.6,
+          color: "rgba(255, 255, 255, 0.9)",
+          opacity: 0.9,
+          density: 0.9,
+          direction: [0, 50],
+          centerThinning: 0.3,
+          vignetteColor: "rgba(200, 220, 255, 0.3)",
+        });
+      } else {
+        // Clear weather
+        mapInstance.setRain(null);
+        mapInstance.setSnow(null);
+      }
+    }
+  }, [weather]);
+
   return (
     <div className="relative h-screen w-full">
       <Toolbar
-          activeTool={activeTool}
-          setActiveTool={setActiveTool}
-          showAssetManager={showAssetManager}
-          onToggleAssetManager={() => setShowAssetManager(!showAssetManager)}
-          showPromptGenerator={showPromptGenerator}
-          onTogglePromptGenerator={() => setShowPromptGenerator(!showPromptGenerator)}
-          lightMode={lightMode}
-          onToggleLightMode={() => setLightMode(prev => prev === "day" ? "night" : "day")}
-        />
+        activeTool={activeTool}
+        setActiveTool={setActiveTool}
+        showAssetManager={showAssetManager}
+        onToggleAssetManager={() => setShowAssetManager(!showAssetManager)}
+        showPromptGenerator={showPromptGenerator}
+        onTogglePromptGenerator={() => setShowPromptGenerator(!showPromptGenerator)}
+      />
+      <WeatherPanel
+        lightMode={lightMode}
+        onToggleLightMode={() => setLightMode(prev => prev === "day" ? "night" : "day")}
+        weather={weather}
+        onWeatherChange={setWeather}
+      />
       {activeTool === "teleport" && (
         <TeleportModal
           onClose={() => setActiveTool(null)}

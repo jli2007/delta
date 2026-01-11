@@ -124,26 +124,11 @@
   }
 }
 
-/* Text Glow Animations */
-@keyframes textGlow {
-  0% {
-    text-shadow: 0 0 10px #fff, 0 0 20px #0066cc, 0 0 30px #0066cc;
-  }
-  100% {
-    text-shadow: 0 0 20px #fff, 0 0 30px #0066cc, 0 0 40px #0066cc, 0 0 50px #0066cc;
-  }
-}
-
-@keyframes textGlowRed {
-  0% {
-    text-shadow: 0 0 10px #fff, 0 0 20px #ff1a1a, 0 0 30px #800080;
-  }
-  100% {
-    text-shadow: 0 0 20px #fff, 0 0 30px #ff1a1a, 0 0 40px #ff1a1a, 0 0 50px #800080, 0 0 60px #800080;
-  }
-}
-
 /* Radial Gradient Utility */
 .bg-gradient-radial {
   background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+button{
+  cursor: pointer !important;
 }
