@@ -10,7 +10,6 @@ import bbox from "@turf/bbox";
 import { Toolbar } from "@/components/Toolbar";
 import { WeatherPanel } from "@/components/WeatherPanel";
 import { BuildingDetailsPanel } from "@/components/BuildingDetailsPanel";
-import { TeleportModal } from "@/components/TeleportModal";
 import { InsertModelModal } from "@/components/InsertModelModal";
 import { AssetManagerPanel } from "@/components/AssetManagerPanel";
 import { Prompt3DGenerator } from "@/components/Prompt3DGenerator";
@@ -94,7 +93,7 @@ export default function MapPage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  const [activeTool, setActiveTool] = useState<"select" | "teleport" | "draw" | "insert" | null>(null);
+  const [activeTool, setActiveTool] = useState<"select" | "draw" | "insert" | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<SelectedBuilding | null>(null);
   const [drawnArea, setDrawnArea] = useState<DrawnArea | null>(null);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
@@ -326,19 +325,6 @@ export default function MapPage() {
     if (drawRef.current) {
       drawRef.current.deleteAll();
     }
-  }, []);
-
-  const handleTeleport = useCallback((coordinates: [number, number]) => {
-    if (map.current) {
-      map.current.flyTo({
-        center: coordinates,
-        zoom: 15.5,
-        pitch: 60,
-        bearing: -17.6,
-        duration: 2000,
-      });
-    }
-    setActiveTool(null);
   }, []);
 
   // Handle search
@@ -1082,12 +1068,6 @@ export default function MapPage() {
         weather={weather}
         onWeatherChange={setWeather}
       />
-      {activeTool === "teleport" && (
-        <TeleportModal
-          onClose={() => setActiveTool(null)}
-          onTeleport={handleTeleport}
-        />
-      )}
       {activeTool === "insert" && (
         <InsertModelModal
           onClose={() => setActiveTool(null)}
@@ -1198,7 +1178,7 @@ export default function MapPage() {
       {/* Search Bar */}
       <div
         data-search-container
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 shadow-xl w-[500px]"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 w-[500px] rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl px-4 py-2"
       >
         <SearchBar
           value={searchQuery}

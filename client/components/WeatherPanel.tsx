@@ -1,6 +1,7 @@
 "use client";
 
-import { SunIcon, MoonIcon, CircleIcon, DotFilledIcon, StarIcon } from "@radix-ui/react-icons";
+import { SunIcon, MoonIcon } from "@radix-ui/react-icons";
+import { CloudRain, Snowflake, CloudOff } from "lucide-react";
 
 type WeatherType = "clear" | "rain" | "snow";
 
@@ -32,7 +33,7 @@ export function WeatherPanel({ lightMode, onToggleLightMode, weather, onWeatherC
             : "text-white/60 hover:text-white hover:bg-white/10"
         }`}
       >
-        <CircleIcon width={18} height={18} />
+        <CloudOff size={18} />
         <span className="text-[10px] font-medium">Clear</span>
       </button>
 
@@ -44,7 +45,7 @@ export function WeatherPanel({ lightMode, onToggleLightMode, weather, onWeatherC
             : "text-white/60 hover:text-white hover:bg-white/10"
         }`}
       >
-        <DotFilledIcon width={18} height={18} />
+        <CloudRain size={18} />
         <span className="text-[10px] font-medium">Rain</span>
       </button>
 
@@ -56,7 +57,7 @@ export function WeatherPanel({ lightMode, onToggleLightMode, weather, onWeatherC
             : "text-white/60 hover:text-white hover:bg-white/10"
         }`}
       >
-        <StarIcon width={18} height={18} />
+        <Snowflake size={18} />
         <span className="text-[10px] font-medium">Snow</span>
       </button>
     </div>

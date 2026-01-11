@@ -80,11 +80,7 @@ export function SearchBar({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
-            className={`w-full pl-12 pr-4 py-3.5 bg-white/5 backdrop-blur-sm text-white placeholder:text-white/40 rounded-xl border transition-all duration-300 outline-none ${
-              isFocused 
-                ? 'border-white/20 bg-white/8' 
-                : 'border-white/10 hover:border-white/15 hover:bg-white/7'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="w-full pl-12 pr-4 py-2 bg-transparent text-white placeholder:text-white/40 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           />
           {isLoading && (
