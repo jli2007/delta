@@ -1,7 +1,6 @@
 "use client";
 
-import { CursorArrowIcon, GlobeIcon, InfoCircledIcon, Pencil2Icon, CubeIcon, StackIcon } from "@radix-ui/react-icons";
-import { Sparkles } from "lucide-react";
+import { CursorArrowIcon, GlobeIcon, Pencil2Icon, CubeIcon, StackIcon, SunIcon, MoonIcon, MagicWandIcon } from "@radix-ui/react-icons";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 type ToolType = "select" | "teleport" | "draw" | "insert" | null;
@@ -13,12 +12,14 @@ interface ToolbarProps {
   onToggleAssetManager: () => void;
   showPromptGenerator: boolean;
   onTogglePromptGenerator: () => void;
+  lightMode: "day" | "night";
+  onToggleLightMode: () => void;
 }
 
-export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleAssetManager, showPromptGenerator, onTogglePromptGenerator }: ToolbarProps) {
+export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleAssetManager, showPromptGenerator, onTogglePromptGenerator, lightMode, onToggleLightMode }: ToolbarProps) {
   return (
     <Tooltip.Provider delayDuration={0}>
-      <div className="absolute left-4 top-[45%] -translate-y-1/2 z-10 flex flex-col justify-between w-16 h-[440px] rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 py-4 shadow-xl">
+      <div className="absolute left-4 top-[45%] -translate-y-1/2 z-10 flex flex-col justify-between w-16 h-[520px] rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 py-4 shadow-xl">
         <div className="flex flex-col gap-4 items-center">
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -134,7 +135,7 @@ export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleA
                     : "text-white/60 hover:text-white hover:bg-white/10"
                 }`}
               >
-                <Sparkles width={20} height={20} />
+                <MagicWandIcon width={20} height={20} />
                 <span className="text-[10px] font-medium">Generate</span>
               </button>
             </Tooltip.Trigger>
@@ -173,6 +174,28 @@ export function Toolbar({ activeTool, setActiveTool, showAssetManager, onToggleA
                 sideOffset={5}
               >
                 Manage placed 3D models
+                <Tooltip.Arrow className="fill-white/10" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                onClick={onToggleLightMode}
+                className="flex flex-col items-center gap-1 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all w-10"
+              >
+                {lightMode === "day" ? <SunIcon width={20} height={20} /> : <MoonIcon width={20} height={20} />}
+                <span className="text-[10px] font-medium">{lightMode === "day" ? "Day" : "Night"}</span>
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl will-change-[transform,opacity] data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade z-50 ml-2"
+                side="right"
+                sideOffset={5}
+              >
+                Toggle {lightMode === "day" ? "night" : "day"} mode
                 <Tooltip.Arrow className="fill-white/10" />
               </Tooltip.Content>
             </Tooltip.Portal>

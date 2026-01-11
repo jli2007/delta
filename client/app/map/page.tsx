@@ -97,6 +97,7 @@ export default function MapPage() {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [deletedFeatures, setDeletedFeatures] = useState<GeoJSON.Feature[]>([]);
   const [showPromptGenerator, setShowPromptGenerator] = useState(false);
+  const [lightMode, setLightMode] = useState<"day" | "night">("day");
   const [redoStack, setRedoStack] = useState<GeoJSON.Feature[]>([]);
   const [pendingModel, setPendingModel] = useState<PendingModel | null>(null);
   const [insertedModels, setInsertedModels] = useState<InsertedModel[]>([]);
@@ -772,7 +773,7 @@ export default function MapPage() {
         map.current.setConfigProperty("basemap", "showPlaceLabels", true);
         map.current.setConfigProperty("basemap", "showRoadLabels", true);
         map.current.setConfigProperty("basemap", "showPointOfInterestLabels", true);
-        map.current.setConfigProperty("basemap", "lightPreset", "dusk");
+        map.current.setConfigProperty("basemap", "lightPreset", lightMode);
 
         // Add source for selected building highlight
         map.current.addSource("selected-building", {
@@ -887,6 +888,13 @@ export default function MapPage() {
     }
   }, [activeTool, isPlacingModel]);
 
+  // Update light mode (day/night weather)
+  useEffect(() => {
+    if (map.current && map.current.isStyleLoaded()) {
+      map.current.setConfigProperty("basemap", "lightPreset", lightMode);
+    }
+  }, [lightMode]);
+
   return (
     <div className="relative h-screen w-full">
       <Toolbar
@@ -896,6 +904,8 @@ export default function MapPage() {
           onToggleAssetManager={() => setShowAssetManager(!showAssetManager)}
           showPromptGenerator={showPromptGenerator}
           onTogglePromptGenerator={() => setShowPromptGenerator(!showPromptGenerator)}
+          lightMode={lightMode}
+          onToggleLightMode={() => setLightMode(prev => prev === "day" ? "night" : "day")}
         />
       {activeTool === "teleport" && (
         <TeleportModal
