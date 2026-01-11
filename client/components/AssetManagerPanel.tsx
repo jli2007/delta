@@ -5,6 +5,7 @@ import { CubeIcon, TrashIcon, TargetIcon } from "@radix-ui/react-icons";
 
 interface InsertedModel {
   id: string;
+  name?: string;
   position: [number, number];
   height: number;
   modelUrl: string;
@@ -19,7 +20,7 @@ interface AssetManagerPanelProps {
   onClose: () => void;
   onFlyTo: (position: [number, number]) => void;
   onDelete: (id: string) => void;
-  onUpdateModel: (id: string, updates: { scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => void;
+  onUpdateModel: (id: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => void;
 }
 
 export function AssetManagerPanel({
@@ -30,31 +31,31 @@ export function AssetManagerPanel({
   onUpdateModel,
 }: AssetManagerPanelProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingField, setEditingField] = useState<"scale" | "positionX" | "positionY" | "height" | "rotationX" | "rotationY" | "rotationZ" | null>(null);
+  const [editingField, setEditingField] = useState<"name" | "scale" | "positionX" | "positionY" | "height" | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const handleStartEdit = (model: InsertedModel, field: "scale" | "positionX" | "positionY" | "height" | "rotationX" | "rotationY" | "rotationZ") => {
+  const handleStartEdit = (model: InsertedModel, index: number, field: "name" | "scale" | "positionX" | "positionY" | "height") => {
     setEditingId(model.id);
     setEditingField(field);
-    if (field === "scale") {
-      setEditValue(model.scale.toFixed(3));
+    if (field === "name") {
+      setEditValue(model.name || `Model ${index + 1}`);
+    } else if (field === "scale") {
+      setEditValue(model.scale.toFixed(2));
     } else if (field === "positionX") {
       setEditValue(model.position[0].toFixed(6));
     } else if (field === "positionY") {
       setEditValue(model.position[1].toFixed(6));
     } else if (field === "height") {
       setEditValue(model.height.toFixed(1));
-    } else if (field === "rotationX") {
-      setEditValue(model.rotationX.toString());
-    } else if (field === "rotationY") {
-      setEditValue(model.rotationY.toString());
-    } else {
-      setEditValue(model.rotationZ.toString());
     }
   };
 
   const handleSaveEdit = (modelId: string) => {
-    if (editingField === "scale") {
+    if (editingField === "name") {
+      if (editValue.trim()) {
+        onUpdateModel(modelId, { name: editValue.trim() });
+      }
+    } else if (editingField === "scale") {
       const newScale = parseFloat(editValue);
       if (!isNaN(newScale) && newScale > 0) {
         onUpdateModel(modelId, { scale: newScale });
@@ -68,11 +69,6 @@ export function AssetManagerPanel({
       const newHeight = parseFloat(editValue);
       if (!isNaN(newHeight)) {
         onUpdateModel(modelId, { height: Math.max(0, newHeight) });
-      }
-    } else if (editingField) {
-      const newRotation = parseInt(editValue);
-      if (!isNaN(newRotation)) {
-        onUpdateModel(modelId, { [editingField]: newRotation % 360 });
       }
     }
     setEditingId(null);
@@ -97,8 +93,8 @@ export function AssetManagerPanel({
         <span className="text-white/40 text-xs">({models.length})</span>
       </div>
 
-      {/* Model list with fixed height and scroll (fits ~3 items) */}
-      <div className="max-h-36 overflow-y-auto">
+      {/* Model list with fixed height and scroll */}
+      <div className="max-h-64 overflow-y-auto">
         {models.length === 0 ? (
           <div className="p-3 text-center text-white/40 text-xs">
             No models placed yet.
@@ -108,41 +104,62 @@ export function AssetManagerPanel({
             {models.map((model, index) => (
               <div
                 key={model.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 group"
+                className="flex items-start gap-2 p-2 rounded-lg hover:bg-white/5 group"
               >
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center shrink-0">
-                  <CubeIcon className="text-cyan-400" width={14} height={14} />
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <CubeIcon className="text-cyan-400" width={16} height={16} />
                 </div>
                 <div className="flex-1 min-w-0">
+                  {/* Name row - editable */}
                   <div className="flex items-center gap-2">
-                    <p className="text-white text-xs font-medium truncate">
-                      Model {index + 1}
-                    </p>
-                    {editingId === model.id && editingField === "scale" ? (
-                      <span className="text-cyan-400 text-[10px]">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(model.id)}
-                          onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-12 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
-                          autoFocus
-                        />x
-                      </span>
+                    {editingId === model.id && editingField === "name" ? (
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => handleSaveEdit(model.id)}
+                        onKeyDown={(e) => handleKeyDown(e, model.id)}
+                        className="flex-1 bg-white/10 rounded px-2 py-0.5 text-white text-sm font-medium outline-none border border-cyan-400/50"
+                        autoFocus
+                      />
                     ) : (
                       <button
-                        onClick={() => handleStartEdit(model, "scale")}
-                        className="text-white/40 text-[10px] hover:text-cyan-400 transition-colors"
+                        onClick={() => handleStartEdit(model, index, "name")}
+                        className="text-white text-sm font-medium truncate hover:text-cyan-400 transition-colors text-left"
+                        title="Click to rename"
+                      >
+                        {model.name || `Model ${index + 1}`}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Scale row - prominent */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white/50 text-xs">Scale:</span>
+                    {editingId === model.id && editingField === "scale" ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => handleSaveEdit(model.id)}
+                        onKeyDown={(e) => handleKeyDown(e, model.id)}
+                        className="w-16 bg-white/10 rounded px-2 py-0.5 text-cyan-400 text-sm font-medium outline-none border border-cyan-400/50"
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        onClick={() => handleStartEdit(model, index, "scale")}
+                        className="text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors"
                         title="Click to edit scale"
                       >
                         {model.scale.toFixed(2)}x
                       </button>
                     )}
                   </div>
-                  {/* Position line */}
-                  <div className="flex items-center gap-1 text-white/40 text-[10px]">
+
+                  {/* Position row */}
+                  <div className="flex items-center gap-1.5 text-white/40 text-xs mt-1">
                     <span className="text-white/30">Pos:</span>
                     {editingId === model.id && editingField === "positionX" ? (
                       <span className="text-cyan-400">
@@ -153,13 +170,13 @@ export function AssetManagerPanel({
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={() => handleSaveEdit(model.id)}
                           onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-16 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          className="w-20 bg-transparent border-none outline-none text-cyan-400 text-xs"
                           autoFocus
                         />
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleStartEdit(model, "positionX")}
+                        onClick={() => handleStartEdit(model, index, "positionX")}
                         className="hover:text-cyan-400 transition-colors"
                         title="Longitude (X)"
                       >
@@ -175,13 +192,13 @@ export function AssetManagerPanel({
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={() => handleSaveEdit(model.id)}
                           onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-16 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          className="w-20 bg-transparent border-none outline-none text-cyan-400 text-xs"
                           autoFocus
                         />
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleStartEdit(model, "positionY")}
+                        onClick={() => handleStartEdit(model, index, "positionY")}
                         className="hover:text-cyan-400 transition-colors"
                         title="Latitude (Y)"
                       >
@@ -197,13 +214,13 @@ export function AssetManagerPanel({
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={() => handleSaveEdit(model.id)}
                           onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-10 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
+                          className="w-12 bg-transparent border-none outline-none text-cyan-400 text-xs"
                           autoFocus
                         />
                       </span>
                     ) : (
                       <button
-                        onClick={() => handleStartEdit(model, "height")}
+                        onClick={() => handleStartEdit(model, index, "height")}
                         className="hover:text-cyan-400 transition-colors"
                         title="Height (Z)"
                       >
@@ -211,91 +228,21 @@ export function AssetManagerPanel({
                       </button>
                     )}
                   </div>
-                  {/* Rotation line */}
-                  <div className="flex items-center gap-1 text-white/40 text-[10px]">
-                    <span className="text-white/30">Rot:</span>
-                    {editingId === model.id && editingField === "rotationX" ? (
-                      <span className="text-cyan-400">
-                        X:<input
-                          type="text"
-                          inputMode="numeric"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(model.id)}
-                          onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
-                          autoFocus
-                        />°
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleStartEdit(model, "rotationX")}
-                        className="hover:text-cyan-400 transition-colors"
-                        title="Rotation X"
-                      >
-                        X:{model.rotationX}°
-                      </button>
-                    )}
-                    {editingId === model.id && editingField === "rotationY" ? (
-                      <span className="text-cyan-400">
-                        Y:<input
-                          type="text"
-                          inputMode="numeric"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(model.id)}
-                          onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
-                          autoFocus
-                        />°
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleStartEdit(model, "rotationY")}
-                        className="hover:text-cyan-400 transition-colors"
-                        title="Rotation Y"
-                      >
-                        Y:{model.rotationY}°
-                      </button>
-                    )}
-                    {editingId === model.id && editingField === "rotationZ" ? (
-                      <span className="text-cyan-400">
-                        Z:<input
-                          type="text"
-                          inputMode="numeric"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(model.id)}
-                          onKeyDown={(e) => handleKeyDown(e, model.id)}
-                          className="w-8 bg-transparent border-none outline-none text-cyan-400 text-[10px]"
-                          autoFocus
-                        />°
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleStartEdit(model, "rotationZ")}
-                        className="hover:text-cyan-400 transition-colors"
-                        title="Rotation Z"
-                      >
-                        Z:{model.rotationZ}°
-                      </button>
-                    )}
-                  </div>
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => onFlyTo(model.position)}
-                    className="p-1 rounded-md hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                    className="p-1.5 rounded-md hover:bg-white/10 text-white/60 hover:text-white transition-all"
                     title="Fly to model"
                   >
-                    <TargetIcon width={12} height={12} />
+                    <TargetIcon width={14} height={14} />
                   </button>
                   <button
                     onClick={() => onDelete(model.id)}
-                    className="p-1 rounded-md hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all"
+                    className="p-1.5 rounded-md hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all"
                     title="Delete model"
                   >
-                    <TrashIcon width={12} height={12} />
+                    <TrashIcon width={14} height={14} />
                   </button>
                 </div>
               </div>

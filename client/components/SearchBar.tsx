@@ -61,7 +61,7 @@ export function SearchBar({
       {/* Search Input */}
       <div className="relative flex items-center gap-2">
         <div className="relative flex-1">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
             <svg
               className="w-5 h-5 text-white/60 transition-colors duration-200"
               fill="none"
@@ -80,11 +80,11 @@ export function SearchBar({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
-            className="w-full pl-12 pr-4 py-2 bg-transparent text-white placeholder:text-white/40 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full pl-12 pr-3 py-2 bg-transparent text-white text-sm placeholder:text-white/40 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           />
           {isLoading && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             </div>
           )}

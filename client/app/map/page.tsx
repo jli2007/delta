@@ -42,6 +42,7 @@ interface PendingModel {
 
 interface InsertedModel {
   id: string;
+  name?: string;
   position: [number, number];
   height: number;
   modelUrl: string;
@@ -576,14 +577,17 @@ export default function MapPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleDeleteModel]);
 
-  // Update a model's scale or rotation
-  const handleUpdateModel = useCallback((modelId: string, updates: { scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
+  // Update a model's properties
+  const handleUpdateModel = useCallback((modelId: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
     setInsertedModels(prev => {
       const updated = prev.map(m => {
         if (m.id !== modelId) return m;
 
         // Handle position updates separately since position is [lng, lat] tuple
         let newModel = { ...m };
+        if (updates.name !== undefined) {
+          newModel.name = updates.name;
+        }
         if (updates.positionX !== undefined) {
           newModel.position = [updates.positionX, newModel.position[1]];
         }
