@@ -153,7 +153,6 @@ export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlace
       const response = await fetch(`${API_BASE}/generate-preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include', // Send session cookie
         body: JSON.stringify({
           prompt,
           style,
@@ -206,9 +205,7 @@ export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlace
 
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`${API_BASE}/3d-job/${jobId}`, {
-            credentials: 'include' // Important: send session cookie
-          });
+          const statusRes = await fetch(`${API_BASE}/3d-job/${jobId}`);
           if (!statusRes.ok) return;
 
           const status: ThreeDJobResult = await statusRes.json();

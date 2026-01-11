@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
@@ -14,10 +14,12 @@ import { InsertModelModal } from "@/components/InsertModelModal";
 import { AssetManagerPanel } from "@/components/AssetManagerPanel";
 import { Prompt3DGenerator } from "@/components/Prompt3DGenerator";
 import { TransformGizmo } from "@/components/TransformGizmo";
-import { SearchBar } from "@/components/SearchBar";
+import { CommandPalette } from "@/components/CommandPalette";
+import { CommandHelp } from "@/components/CommandHelp";
 import { SearchResultPopup } from "@/components/SearchResultPopup";
 import { MapControls } from "@/components/MapControls";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import type { CommandContext, InsertedModel as CommandInsertedModel } from "@/lib/commands";
 
 interface SelectedBuilding {
   id: string | number;
@@ -137,6 +139,7 @@ export default function MapPage() {
   const [gizmoScreenPos, setGizmoScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [showCommandHelp, setShowCommandHelp] = useState(false);
   const [searchResult, setSearchResult] = useState<{
     intent: {
       action: string;
@@ -857,6 +860,51 @@ export default function MapPage() {
       return updated;
     });
   }, [updateModelsSource]);
+
+  // Command palette context
+  const commandContext: CommandContext = useMemo(() => ({
+    map: map.current,
+    activeTool: activeTool || "select",
+    setActiveTool: (tool) => handleSetActiveTool(tool === "generate" ? null : tool as "select" | "draw" | "insert" | null),
+    insertedModels: insertedModels as unknown as CommandInsertedModel[],
+    setInsertedModels: setInsertedModels as unknown as React.Dispatch<React.SetStateAction<CommandInsertedModel[]>>,
+    selectedModelId,
+    setSelectedModelId,
+    setWeather,
+    setLightMode,
+    handleUndo,
+    handleRedo,
+    handleFlyToModel,
+    handleDeleteModel,
+    setShowInsertModal: (show) => {
+      if (show) {
+        handleSetActiveTool("insert");
+      }
+    },
+    setIsGeneratorVisible: setShowPromptGenerator,
+    handleSearch,
+    setSearchQuery,
+    setShowLabels: (show) => {
+      map.current?.setConfigProperty("basemap", "showPlaceLabels", show);
+    },
+    setShowRoads: (show) => {
+      map.current?.setConfigProperty("basemap", "showRoadLabels", show);
+    },
+    setShowPOIs: (show) => {
+      map.current?.setConfigProperty("basemap", "showPointOfInterestLabels", show);
+    },
+    setShowHelp: setShowCommandHelp,
+  }), [
+    activeTool,
+    insertedModels,
+    selectedModelId,
+    handleUndo,
+    handleRedo,
+    handleFlyToModel,
+    handleDeleteModel,
+    handleSearch,
+    handleSetActiveTool,
+  ]);
 
   // Keyboard shortcut for deleting selected model
   useEffect(() => {
@@ -1581,20 +1629,26 @@ export default function MapPage() {
         />
       )}
 
-      {/* Search Bar */}
+      {/* Command Palette (Smart Search) */}
       <div
         data-search-container
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 w-[500px] rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 shadow-xl px-4 py-2"
       >
-        <SearchBar
+        <CommandPalette
           value={searchQuery}
           onChange={setSearchQuery}
           onSearch={handleSearch}
+          context={commandContext}
           isLoading={isSearching}
-          placeholder="Search anywhere... (e.g., 'take me to Paris', 'tallest building')"
+          placeholder="Type / for commands, or search naturally..."
         />
       </div>
-      
+
+      {/* Command Help Modal */}
+      {showCommandHelp && (
+        <CommandHelp onClose={() => setShowCommandHelp(false)} />
+      )}
+
       <div ref={mapContainer} className="h-full w-full" />
     </div>
   );
