@@ -123,3 +123,67 @@ class UploadResponse(BaseModel):
     download_url: str
     format: str
     generation_time: float
+
+
+# =============================================================================
+# Preview Workflow (2D first, then 3D in background)
+# =============================================================================
+
+class PreviewRequest(BaseModel):
+    """Request for 2D preview generation."""
+    prompt: str
+    style: str = Field(
+        default="architectural",
+        pattern="^(architectural|modern|classical|futuristic)$"
+    )
+    num_views: int = Field(default=1, ge=1, le=4)
+    high_quality: bool = True
+
+
+class PreviewResponse(BaseModel):
+    """Response with 2D images and job_id for background 3D generation."""
+    job_id: str
+    status: str  # "images_ready" or "error"
+    original_prompt: str
+    cleaned_prompt: str
+    dalle_prompt: str
+    image_urls: list[str]
+    message: str
+
+
+class Start3DRequest(BaseModel):
+    """Request to start 3D generation from existing images."""
+    job_id: str
+    image_urls: list[str]
+    texture_size: int = Field(default=1024, ge=512, le=2048)
+    use_multi: bool = False
+
+
+class ThreeDJobStatus(BaseModel):
+    """Status of a 3D generation job."""
+    job_id: str
+    status: str  # "pending", "generating", "completed", "failed"
+    progress: int = Field(ge=0, le=100)
+    message: str
+    model_url: Optional[str] = None
+    model_file: Optional[str] = None
+    download_url: Optional[str] = None
+    generation_time: Optional[float] = None
+
+
+class ActiveJob(BaseModel):
+    """Unified active job representation."""
+    job_id: str
+    type: str  # "image", "3d", "pipeline"
+    status: str
+    progress: int = Field(ge=0, le=100)
+    message: str
+
+
+class ActiveJobsResponse(BaseModel):
+    """Response listing active jobs only."""
+    total_active: int
+    image_jobs: int
+    three_d_jobs: int
+    pipeline_jobs: int
+    jobs: list[ActiveJob]

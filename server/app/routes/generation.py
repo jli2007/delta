@@ -13,12 +13,20 @@ from ..schemas import (
     PipelineRequest,
     PipelineResponse,
     JobStatus,
+    PreviewRequest,
+    PreviewResponse,
+    Start3DRequest,
+    ThreeDJobStatus,
+    ActiveJob,
+    ActiveJobsResponse,
 )
 
 router = APIRouter(tags=["Generation"])
 
 # In-memory job storage (use Redis for production)
 jobs: dict[str, JobStatus] = {}
+three_d_jobs: dict[str, ThreeDJobStatus] = {}
+image_jobs: dict[str, dict] = {}  # Tracks image generation jobs
 
 
 # =============================================================================
@@ -267,3 +275,288 @@ async def get_job_status(job_id: str):
     if job_id not in jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return jobs[job_id]
+
+
+# =============================================================================
+# Preview Workflow (2D first, then 3D in background)
+# =============================================================================
+
+@router.post("/generate-preview", response_model=PreviewResponse)
+async def generate_preview(request: PreviewRequest):
+    """
+    Generate 2D images immediately and return them.
+    Does NOT start 3D generation - call /start-3d separately.
+    
+    This enables the workflow:
+    1. User enters prompt → sees 2D images immediately
+    2. User can refine prompt and regenerate images
+    3. When satisfied, user starts 3D generation
+    """
+    openai_svc = OpenAIService()
+    
+    if not openai_svc.is_configured:
+        raise HTTPException(status_code=503, detail="OpenAI not configured")
+    
+    job_id = uuid.uuid4().hex
+    
+    # Track image generation job
+    image_jobs[job_id] = {
+        "job_id": job_id,
+        "status": "generating",
+        "progress": 10,
+        "message": "Cleaning prompt..."
+    }
+    
+    try:
+        # Stage 1: Clean prompt
+        clean_result = await openai_svc.clean_prompt(request.prompt, request.style)
+        
+        # Stage 2: Generate images
+        image_jobs[job_id]["progress"] = 30
+        image_jobs[job_id]["message"] = f"Generating {request.num_views} image(s) with DALL-E..."
+        
+        image_result = await openai_svc.generate_images(
+            prompt=clean_result.dalle_prompt,
+            num_images=request.num_views,
+            quality="hd" if request.high_quality else "standard"
+        )
+        
+        # Remove from active jobs when complete
+        del image_jobs[job_id]
+        
+        return PreviewResponse(
+            job_id=job_id,
+            status="images_ready",
+            original_prompt=request.prompt,
+            cleaned_prompt=clean_result.cleaned_prompt,
+            dalle_prompt=clean_result.dalle_prompt,
+            image_urls=image_result.images,
+            message="2D images ready! Click Finish to generate 3D model."
+        )
+        
+    except Exception as e:
+        # Remove from active jobs on error
+        if job_id in image_jobs:
+            del image_jobs[job_id]
+        raise HTTPException(status_code=500, detail=f"Preview generation failed: {e}")
+
+
+async def _run_3d_generation(job_id: str, image_urls: list[str], texture_size: int, use_multi: bool):
+    """Background task for 3D generation."""
+    import time
+    fal_svc = FalService()
+    
+    three_d_jobs[job_id] = ThreeDJobStatus(
+        job_id=job_id,
+        status="generating",
+        progress=10,
+        message="Starting 3D model generation..."
+    )
+    
+    try:
+        start_time = time.time()
+        
+        # Update progress
+        three_d_jobs[job_id].progress = 30
+        three_d_jobs[job_id].message = "Processing images with Trellis..."
+        
+        result = await fal_svc.generate_3d(
+            image_url=image_urls[0] if not use_multi else None,
+            image_urls=image_urls if use_multi else None,
+            use_multi=use_multi,
+            texture_size=texture_size
+        )
+        
+        generation_time = time.time() - start_time
+        
+        three_d_jobs[job_id].status = "completed"
+        three_d_jobs[job_id].progress = 100
+        three_d_jobs[job_id].message = "3D model ready!"
+        three_d_jobs[job_id].model_url = result.model_url
+        three_d_jobs[job_id].model_file = result.file_name
+        three_d_jobs[job_id].download_url = f"/download/{result.file_name}"
+        three_d_jobs[job_id].generation_time = generation_time
+        
+    except Exception as e:
+        three_d_jobs[job_id].status = "failed"
+        three_d_jobs[job_id].progress = 0
+        three_d_jobs[job_id].message = f"Error: {e}"
+
+
+@router.post("/start-3d")
+async def start_3d_generation(
+    request: Start3DRequest,
+    background_tasks: BackgroundTasks
+):
+    """
+    Start 3D generation in background from existing images.
+    Returns immediately with job_id to poll for status.
+    """
+    fal_svc = FalService()
+    
+    if not fal_svc.is_configured:
+        raise HTTPException(status_code=503, detail="fal.ai not configured")
+    
+    if not request.image_urls:
+        raise HTTPException(status_code=400, detail="No images provided")
+    
+    # Initialize job status
+    three_d_jobs[request.job_id] = ThreeDJobStatus(
+        job_id=request.job_id,
+        status="pending",
+        progress=0,
+        message="Queued for 3D generation..."
+    )
+    
+    # Determine if multi-view
+    use_multi = request.use_multi and len(request.image_urls) > 1
+    
+    # Start background task
+    background_tasks.add_task(
+        _run_3d_generation,
+        request.job_id,
+        request.image_urls,
+        request.texture_size,
+        use_multi
+    )
+    
+    return {
+        "job_id": request.job_id,
+        "status": "started",
+        "poll_url": f"/3d-job/{request.job_id}"
+    }
+
+
+@router.get("/3d-job/{job_id}", response_model=ThreeDJobStatus)
+async def get_3d_job_status(job_id: str):
+    """Get status of a 3D generation job."""
+    if job_id not in three_d_jobs:
+        raise HTTPException(status_code=404, detail="3D job not found")
+    return three_d_jobs[job_id]
+
+
+@router.get("/jobs", response_model=ActiveJobsResponse)
+async def list_active_jobs():
+    """
+    List all currently active jobs (image generation, 3D generation, pipelines).
+    Only shows jobs that are in progress, not completed or failed.
+    """
+    active_jobs: list[ActiveJob] = []
+    
+    # Collect active image generation jobs
+    for job_id, job in image_jobs.items():
+        active_jobs.append(ActiveJob(
+            job_id=job_id,
+            type="image",
+            status=job["status"],
+            progress=job["progress"],
+            message=job["message"]
+        ))
+    
+    # Collect active 3D generation jobs
+    for job_id, job in three_d_jobs.items():
+        if job.status in ("pending", "generating"):
+            active_jobs.append(ActiveJob(
+                job_id=job_id,
+                type="3d",
+                status=job.status,
+                progress=job.progress,
+                message=job.message
+            ))
+    
+    # Collect active pipeline jobs
+    for job_id, job in jobs.items():
+        if job.status not in ("completed", "failed"):
+            active_jobs.append(ActiveJob(
+                job_id=job_id,
+                type="pipeline",
+                status=job.status,
+                progress=job.progress,
+                message=job.message
+            ))
+    
+    # Count by type
+    image_count = sum(1 for j in active_jobs if j.type == "image")
+    three_d_count = sum(1 for j in active_jobs if j.type == "3d")
+    pipeline_count = sum(1 for j in active_jobs if j.type == "pipeline")
+    
+    # Sort by progress (lower progress = earlier in pipeline)
+    active_jobs.sort(key=lambda j: j.progress)
+    
+    return ActiveJobsResponse(
+        total_active=len(active_jobs),
+        image_jobs=image_count,
+        three_d_jobs=three_d_count,
+        pipeline_jobs=pipeline_count,
+        jobs=active_jobs
+    )
+
+
+@router.post("/jobs/{job_id}/cancel")
+async def cancel_job(job_id: str):
+    """
+    Cancel a running job. Marks it as cancelled and removes from active tracking.
+    Works for 3D jobs, image jobs, and pipeline jobs.
+    """
+    cancelled = False
+    job_type = None
+    
+    # Check and cancel 3D job
+    if job_id in three_d_jobs:
+        job = three_d_jobs[job_id]
+        if job.status in ("pending", "generating"):
+            three_d_jobs[job_id].status = "cancelled"
+            three_d_jobs[job_id].message = "Job cancelled by user"
+            del three_d_jobs[job_id]
+            cancelled = True
+            job_type = "3d"
+    
+    # Check and cancel image job
+    if job_id in image_jobs:
+        del image_jobs[job_id]
+        cancelled = True
+        job_type = "image"
+    
+    # Check and cancel pipeline job
+    if job_id in jobs:
+        job = jobs[job_id]
+        if job.status not in ("completed", "failed"):
+            jobs[job_id].status = "cancelled"
+            jobs[job_id].message = "Job cancelled by user"
+            del jobs[job_id]
+            cancelled = True
+            job_type = "pipeline"
+    
+    if not cancelled:
+        raise HTTPException(status_code=404, detail="Active job not found")
+    
+    return {"status": "cancelled", "job_id": job_id, "type": job_type}
+
+
+@router.delete("/jobs/cleanup")
+async def cleanup_finished_jobs():
+    """
+    Clean up completed and failed jobs from memory.
+    Useful for freeing up memory after jobs are done.
+    """
+    # Clean up completed/failed 3D jobs
+    three_d_to_delete = [
+        job_id for job_id, job in three_d_jobs.items() 
+        if job.status in ("completed", "failed")
+    ]
+    for job_id in three_d_to_delete:
+        del three_d_jobs[job_id]
+    
+    # Clean up completed/failed pipeline jobs
+    pipeline_to_delete = [
+        job_id for job_id, job in jobs.items() 
+        if job.status in ("completed", "failed")
+    ]
+    for job_id in pipeline_to_delete:
+        del jobs[job_id]
+    
+    return {
+        "status": "cleaned",
+        "three_d_jobs_removed": len(three_d_to_delete),
+        "pipeline_jobs_removed": len(pipeline_to_delete)
+    }
