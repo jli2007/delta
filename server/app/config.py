@@ -32,9 +32,9 @@ class Settings(BaseSettings):
         "https://www.arcki.tech",
     ]
 
-    # Generation defaults
-    default_texture_size: int = 1024
-    default_mesh_simplify: float = 0.95
+    # Generation defaults - optimized for quality
+    default_texture_size: int = 1024 # Max resolution
+    default_mesh_simplify: float = 0.95  # 0.9 = max detail (minimum simplification)
 
     class Config:
         env_file = ".env"

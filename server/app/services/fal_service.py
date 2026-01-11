@@ -54,7 +54,7 @@ class FalService:
         use_multi: bool = False,
         seed: int | None = None,
         texture_size: int = 1024,
-        mesh_simplify: float = 0.95,
+        mesh_simplify: float = 0.95,  # Lower = more detail (0.9 is minimum)
         ss_guidance_strength: float = 7.5,
         slat_guidance_strength: float = 3.0,
     ) -> TrellisResponse:

@@ -47,6 +47,7 @@ interface InsertedModel {
   name?: string;
   position: [number, number];
   height: number;
+  heightLocked: boolean; // When true, height auto-adjusts with scale (0.36 ratio)
   modelUrl: string;
   scale: number;
   rotationX: number;
@@ -877,7 +878,7 @@ export default function MapPage() {
   }, [handleDeleteModel]);
 
   // Update a model's properties
-  const handleUpdateModel = useCallback((modelId: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
+  const handleUpdateModel = useCallback((modelId: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; heightLocked?: boolean; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
     setInsertedModels(prev => {
       const updated = prev.map(m => {
         if (m.id !== modelId) return m;
@@ -893,11 +894,18 @@ export default function MapPage() {
         if (updates.positionY !== undefined) {
           newModel.position = [newModel.position[0], updates.positionY];
         }
+        if (updates.heightLocked !== undefined) {
+          newModel.heightLocked = updates.heightLocked;
+        }
         if (updates.height !== undefined) {
           newModel.height = updates.height;
         }
         if (updates.scale !== undefined) {
           newModel.scale = updates.scale;
+          // Auto-adjust height when scale changes if heightLocked is true
+          if (newModel.heightLocked) {
+            newModel.height = updates.scale * 0.36;
+          }
         }
         if (updates.rotationX !== undefined) {
           newModel.rotationX = updates.rotationX;
@@ -1021,10 +1029,15 @@ export default function MapPage() {
     if (!isPlacingModelRef.current || !pendingModelRef.current || !map.current) return;
 
     const pending = pendingModelRef.current;
+    // Calculate base height based on scale - larger models need more height offset
+    // to sit properly on the ground (models have their origin at center/base)
+    const baseHeight = pending.scale * 0.36; // 0.36 z per scale unit
+    
     const newModel: InsertedModel = {
       id: `model-${Date.now()}`,
       position: [e.lngLat.lng, e.lngLat.lat],
-      height: 0,
+      height: baseHeight,
+      heightLocked: true, // Height auto-adjusts with scale by default
       modelUrl: pending.url,
       scale: pending.scale,
       rotationX: pending.rotationX,

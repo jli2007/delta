@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CubeIcon, TrashIcon, TargetIcon } from "@radix-ui/react-icons";
+import { CubeIcon, TrashIcon, TargetIcon, LockClosedIcon, LockOpen1Icon } from "@radix-ui/react-icons";
 
 interface InsertedModel {
   id: string;
   name?: string;
   position: [number, number];
   height: number;
+  heightLocked: boolean;
   modelUrl: string;
   scale: number;
   rotationX: number;
@@ -20,7 +21,7 @@ interface AssetManagerPanelProps {
   onClose: () => void;
   onFlyTo: (position: [number, number]) => void;
   onDelete: (id: string) => void;
-  onUpdateModel: (id: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => void;
+  onUpdateModel: (id: string, updates: { name?: string; scale?: number; positionX?: number; positionY?: number; height?: number; heightLocked?: boolean; rotationX?: number; rotationY?: number; rotationZ?: number }) => void;
 }
 
 export function AssetManagerPanel({
@@ -221,12 +222,27 @@ export function AssetManagerPanel({
                     ) : (
                       <button
                         onClick={() => handleStartEdit(model, index, "height")}
-                        className="hover:text-white transition-colors"
-                        title="Height (Z)"
+                        className={`hover:text-white transition-colors ${model.heightLocked ? 'opacity-60' : ''}`}
+                        title={model.heightLocked ? "Height (Z) - locked to scale" : "Height (Z)"}
                       >
                         Z:{model.height.toFixed(1)}
                       </button>
                     )}
+                    <button
+                      onClick={() => onUpdateModel(model.id, { heightLocked: !model.heightLocked })}
+                      className={`ml-1 p-0.5 rounded transition-all ${
+                        model.heightLocked 
+                          ? 'text-amber-400 hover:text-amber-300' 
+                          : 'text-white/40 hover:text-white/60'
+                      }`}
+                      title={model.heightLocked ? "Height locked to scale (0.36 ratio) - click to unlock" : "Height unlocked - click to lock"}
+                    >
+                      {model.heightLocked ? (
+                        <LockClosedIcon width={10} height={10} />
+                      ) : (
+                        <LockOpen1Icon width={10} height={10} />
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

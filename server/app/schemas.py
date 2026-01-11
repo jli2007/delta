@@ -52,8 +52,8 @@ class TrellisRequest(BaseModel):
     image_urls: Optional[list[str]] = None
     use_multi: bool = False
     seed: Optional[int] = None
-    texture_size: int = Field(default=1024, ge=512, le=2048)
-    mesh_simplify: float = Field(default=0.95, ge=0.9, le=0.98)
+    texture_size: int = Field(default=1024, ge=512, le=2048)  # Max resolution for quality
+    mesh_simplify: float = Field(default=0.95, ge=0.9, le=0.98)  # 0.9 = max detail
     ss_guidance_strength: float = Field(default=7.5, ge=0, le=10)
     slat_guidance_strength: float = Field(default=3.0, ge=0, le=10)
 

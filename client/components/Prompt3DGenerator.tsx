@@ -189,7 +189,7 @@ export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlace
         body: JSON.stringify({
           job_id: jobId,
           image_urls: previewResult.image_urls,
-          texture_size: 1024,
+          texture_size: 1024, // Max texture resolution for better quality
           use_multi: numViews > 1,
         }),
       });
