@@ -25,7 +25,7 @@ interface AssetManagerPanelProps {
 
 export function AssetManagerPanel({
   models,
-  onClose,
+  onClose: _onClose,
   onFlyTo,
   onDelete,
   onUpdateModel,

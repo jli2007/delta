@@ -19,7 +19,7 @@ export function SearchBar({
   placeholder = "Search...",
   quickPrompts = [],
 }: SearchBarProps) {
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);

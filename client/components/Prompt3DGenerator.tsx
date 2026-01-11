@@ -324,7 +324,7 @@ export function Prompt3DGenerator({ isVisible, onClose, onRequestExpand, onPlace
     }
   };
 
-  const uploadToLibrary = async (file: File, preview: PreviewResult, job: ThreeDJobResult) => {
+  const uploadToLibrary = async (file: File, preview: PreviewResult, _job: ThreeDJobResult) => {
     try {
       const timestamp = Date.now();
       const glbFilename = `${timestamp}-generated.glb`;
