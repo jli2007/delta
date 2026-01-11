@@ -558,6 +558,24 @@ export default function MapPage() {
     });
   }, [updateModelsSource]);
 
+  // Keyboard shortcut for deleting selected model
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedModelIdRef.current) {
+          // Only prevent default if we're actually deleting something
+          e.preventDefault();
+          handleDeleteModel(selectedModelIdRef.current);
+          setSelectedModelId(null);
+          setGizmoScreenPos(null);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleDeleteModel]);
+
   // Update a model's scale or rotation
   const handleUpdateModel = useCallback((modelId: string, updates: { scale?: number; positionX?: number; positionY?: number; height?: number; rotationX?: number; rotationY?: number; rotationZ?: number }) => {
     setInsertedModels(prev => {
@@ -1130,6 +1148,13 @@ export default function MapPage() {
           onHeightChange={handleGizmoHeightChange}
           onRotate={handleGizmoRotate}
           onModeChange={setGizmoMode}
+          onDelete={() => {
+            if (selectedModelId) {
+              handleDeleteModel(selectedModelId);
+              setSelectedModelId(null);
+              setGizmoScreenPos(null);
+            }
+          }}
         />
       )}
       {/* Search Result Popup - positioned above search bar */}

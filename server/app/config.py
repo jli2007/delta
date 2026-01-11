@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -31,9 +31,11 @@ class Settings(BaseSettings):
     default_texture_size: int = 1024
     default_mesh_simplify: float = 0.95
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"  # Ignore extra environment variables not defined in the model
+    )
 
 
 @lru_cache

@@ -12,6 +12,7 @@ interface TransformGizmoProps {
   onHeightChange: (deltaHeight: number) => void;
   onRotate: (axis: "x" | "y" | "z", newRotation: number) => void;
   onModeChange: (mode: "move" | "rotate") => void;
+  onDelete?: () => void;
 }
 
 type DragAxis = "x" | "y" | "z" | "free" | "rotateX" | "rotateY" | "rotateZ" | null;
@@ -26,6 +27,7 @@ export function TransformGizmo({
   onHeightChange,
   onRotate,
   onModeChange,
+  onDelete,
 }: TransformGizmoProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragAxis, setDragAxis] = useState<DragAxis>(null);
@@ -111,7 +113,7 @@ export function TransformGizmo({
         transform: "translate(-50%, -50%)",
       }}
     >
-      {/* Mode toggle buttons */}
+      {/* Mode toggle and delete buttons */}
       <div
         className="absolute -top-14 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-auto backdrop-blur-sm bg-black/30 rounded-lg p-1"
         onClick={(e) => e.stopPropagation()}
@@ -136,6 +138,15 @@ export function TransformGizmo({
         >
           Rotate
         </button>
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="px-3 py-1.5 rounded text-xs font-medium transition-all text-red-400 hover:text-red-300 hover:bg-red-500/20"
+            title="Delete (Del)"
+          >
+            Delete
+          </button>
+        )}
       </div>
 
       {mode === "move" ? (
