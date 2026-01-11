@@ -75,7 +75,7 @@ export function MapControls({ map }: MapControlsProps) {
 
   return (
     <Tooltip.Provider delayDuration={0}>
-      <div className="absolute right-4 bottom-4 z-10 flex flex-col items-end gap-2">
+      <div className="absolute right-4 bottom-8 z-10 flex flex-col-reverse items-end gap-2">
         {/* Main Controls Row */}
         <div className="flex flex-row items-center gap-2">
           {/* Zoom Controls */}

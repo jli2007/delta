@@ -1468,7 +1468,7 @@ export default function MapPage() {
         />
       )}
       {isPlacingModel && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-white text-sm">
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-white text-sm">
           Click on the map to place your model
         </div>
       )}

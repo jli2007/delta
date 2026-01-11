@@ -45,7 +45,7 @@ export function Toolbar({ activeTool, setActiveTool, showPromptGenerator, onTogg
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content
-                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl will-change-[transform,opacity] data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade z-50 mt-2"
+                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl z-50"
                 side="bottom"
                 sideOffset={5}
               >
@@ -71,7 +71,7 @@ export function Toolbar({ activeTool, setActiveTool, showPromptGenerator, onTogg
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content
-                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl will-change-[transform,opacity] data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade z-50 mt-2"
+                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl z-50"
                 side="bottom"
                 sideOffset={5}
               >
@@ -97,7 +97,7 @@ export function Toolbar({ activeTool, setActiveTool, showPromptGenerator, onTogg
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content
-                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl will-change-[transform,opacity] data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade z-50 mt-2"
+                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl z-50"
                 side="bottom"
                 sideOffset={5}
               >
@@ -123,7 +123,7 @@ export function Toolbar({ activeTool, setActiveTool, showPromptGenerator, onTogg
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content
-                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl will-change-[transform,opacity] data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade z-50 mt-2"
+                className="select-none rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl z-50"
                 side="bottom"
                 sideOffset={5}
               >
