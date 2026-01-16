@@ -19,63 +19,63 @@ interface TutorialProps {
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Arcki!",
-    description: "This interactive tutorial will guide you through the main features. You can skip at any time or navigate with the buttons below.",
+    title: "Welcome",
+    description: "Guide to main features. Skip or navigate with buttons below.",
     position: "center",
   },
   {
     id: "toolbar-select",
-    title: "Select Tool",
-    description: "Use the Select tool to click on buildings and view their details. You'll see information like name, address, and dimensions.",
+    title: "Select",
+    description: "Click buildings to view details.",
     target: '[data-tutorial="toolbar-select"]',
     position: "bottom",
   },
   {
     id: "toolbar-delete",
-    title: "Delete Tool",
-    description: "The Delete tool lets you draw polygons on the map to remove buildings from the area. Click to start drawing, then click to complete the shape.",
+    title: "Delete",
+    description: "Draw polygons to remove buildings.",
     target: '[data-tutorial="toolbar-delete"]',
     position: "bottom",
   },
   {
     id: "toolbar-insert",
-    title: "Insert Tool",
-    description: "Add custom 3D models to the map! Click Insert, choose from the library or upload your own GLB file, then place it anywhere on the map.",
+    title: "Insert",
+    description: "Add 3D models from library or upload GLB files.",
     target: '[data-tutorial="toolbar-insert"]',
     position: "bottom",
   },
   {
     id: "toolbar-generate",
-    title: "Generate Tool",
-    description: "Create 3D objects using AI! Type a prompt describing what you want to generate, and watch as AI creates a 3D model for you.",
+    title: "Generate",
+    description: "Create 3D models from text prompts.",
     target: '[data-tutorial="toolbar-generate"]',
     position: "bottom",
   },
   {
     id: "search-bar",
-    title: "Search Bar",
-    description: "Search for buildings using natural language. Try queries like 'tallest building in Manhattan' or 'coffee shops near me'. The AI understands your intent!",
+    title: "Search",
+    description: "Search buildings by location or attributes.",
     target: '[data-tutorial="search-bar"]',
     position: "top",
   },
   {
     id: "map-controls",
     title: "Map Controls",
-    description: "Zoom in/out, reset to north, toggle between 2D and 3D view, and see keyboard shortcuts. Use these to navigate the map effectively.",
+    description: "Zoom, rotate, toggle 2D/3D view.",
     target: '[data-tutorial="map-controls"]',
     position: "left",
   },
   {
     id: "weather-panel",
-    title: "Weather & Lighting",
-    description: "Change the time of day (day/night) and weather conditions (clear/rain/snow) to see how your architecture looks in different lighting.",
+    title: "Lighting",
+    description: "Set time of day and weather.",
     target: '[data-tutorial="weather-panel"]',
     position: "right",
   },
   {
     id: "complete",
-    title: "You're all set!",
-    description: "Start exploring! You can always access this tutorial again from the settings or trigger it manually. Happy building! 🏗️",
+    title: "Complete",
+    description: "Tutorial complete.",
     position: "center",
   },
 ];
@@ -248,7 +248,7 @@ export function Tutorial({ onComplete, onSkip }: TutorialProps) {
         {/* Top overlay */}
         {highlightRect && (
           <div
-            className="absolute bg-black/50 backdrop-blur-[2px] transition-all duration-300"
+            className="absolute bg-black/20 transition-all duration-300"
             style={{
               top: 0,
               left: 0,
@@ -260,7 +260,7 @@ export function Tutorial({ onComplete, onSkip }: TutorialProps) {
         {/* Bottom overlay */}
         {highlightRect && (
           <div
-            className="absolute bg-black/50 backdrop-blur-[2px] transition-all duration-300"
+            className="absolute bg-black/20 transition-all duration-300"
             style={{
               top: highlightRect.bottom,
               left: 0,
@@ -272,7 +272,7 @@ export function Tutorial({ onComplete, onSkip }: TutorialProps) {
         {/* Left overlay */}
         {highlightRect && (
           <div
-            className="absolute bg-black/50 backdrop-blur-[2px] transition-all duration-300"
+            className="absolute bg-black/20 transition-all duration-300"
             style={{
               top: highlightRect.top,
               left: 0,
@@ -284,7 +284,7 @@ export function Tutorial({ onComplete, onSkip }: TutorialProps) {
         {/* Right overlay */}
         {highlightRect && (
           <div
-            className="absolute bg-black/50 backdrop-blur-[2px] transition-all duration-300"
+            className="absolute bg-black/20 transition-all duration-300"
             style={{
               top: highlightRect.top,
               left: highlightRect.right,
@@ -295,7 +295,7 @@ export function Tutorial({ onComplete, onSkip }: TutorialProps) {
         )}
         {/* Full overlay for center steps */}
         {!highlightRect && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-black/20" />
         )}
       </div>
 
