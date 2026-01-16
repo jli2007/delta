@@ -2,6 +2,7 @@
 
 > Built for DeltaHacks 12
 
+
 A full-stack application for generating 3D meshes from images using TripoSR, powered by Modal's GPU infrastructure.
 
 ## Architecture
