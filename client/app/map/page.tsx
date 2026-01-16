@@ -137,6 +137,7 @@ export default function MapPage() {
   const [gizmoMode, setGizmoMode] = useState<"move" | "rotate">("move");
   const [gizmoScreenPos, setGizmoScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewPosition, setPreviewPosition] = useState<[number, number] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<{
     intent: {
@@ -195,6 +196,13 @@ export default function MapPage() {
       setTimeout(() => {
         insertCooldownRef.current = false;
       }, 200);
+      
+      // Cancel model placement if switching away from insert tool
+      if (isPlacingModel) {
+        setPendingModel(null);
+        setIsPlacingModel(false);
+        setPreviewPosition(null);
+      }
     }
 
     // Hide search pin when switching tools
@@ -811,6 +819,12 @@ export default function MapPage() {
     setPendingModel(model);
     setIsPlacingModel(true);
     setActiveTool(null); // Close modal but stay in placement mode
+    
+    // Initialize preview position at map center if available
+    if (map.current) {
+      const center = map.current.getCenter();
+      setPreviewPosition([center.lng, center.lat]);
+    }
   }, []);
 
   // Fly to a model's position
@@ -1024,6 +1038,58 @@ export default function MapPage() {
     return closestModel;
   }, []);
 
+  // Update preview model position on mouse move
+  const handleMouseMove = useCallback((e: mapboxgl.MapMouseEvent) => {
+    if (isPlacingModelRef.current && pendingModelRef.current) {
+      setPreviewPosition([e.lngLat.lng, e.lngLat.lat]);
+    }
+  }, []);
+
+  // Update preview model source
+  const updatePreviewSource = useCallback((position: [number, number] | null, model: PendingModel | null) => {
+    if (!map.current) return;
+    
+    const source = map.current.getSource("model-preview") as mapboxgl.GeoJSONSource;
+    if (!source) return;
+
+    if (!position || !model) {
+      source.setData({ type: "FeatureCollection", features: [] });
+      return;
+    }
+
+    const baseHeight = model.scale * 0.36;
+    source.setData({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature" as const,
+        properties: {
+          "model-uri": model.url,
+          scale: model.scale,
+          rotationX: model.rotationX,
+          rotationY: model.rotationY,
+          rotationZ: model.rotationZ,
+          height: baseHeight,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: position,
+        },
+      }],
+    });
+  }, []);
+
+  // Update preview when position or pending model changes
+  useEffect(() => {
+    if (isPlacingModel && pendingModel) {
+      if (previewPosition) {
+        updatePreviewSource(previewPosition, pendingModel);
+      }
+    } else {
+      updatePreviewSource(null, null);
+      setPreviewPosition(null);
+    }
+  }, [isPlacingModel, pendingModel, previewPosition, updatePreviewSource]);
+
   // Handle map click for model placement
   const handleModelPlacement = useCallback((e: mapboxgl.MapMouseEvent) => {
     if (!isPlacingModelRef.current || !pendingModelRef.current || !map.current) return;
@@ -1051,9 +1117,10 @@ export default function MapPage() {
       return updated;
     });
 
-    // Reset placement state
+    // Reset placement state and clear preview
     setPendingModel(null);
     setIsPlacingModel(false);
+    setPreviewPosition(null);
   }, [updateModelsSource]);
 
   const handleBuildingClick = useCallback(
@@ -1296,6 +1363,12 @@ export default function MapPage() {
           data: { type: "FeatureCollection", features: [] },
         });
 
+        // Add source for preview model
+        map.current.addSource("model-preview", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
         // Add native model layer for custom 3D models
         try {
           map.current.addLayer({
@@ -1312,6 +1385,24 @@ export default function MapPage() {
               "model-translation": [0, 0, ["get", "height"]],
               "model-cast-shadows": true,
               "model-emissive-strength": 0.6,
+            },
+          } as mapboxgl.LayerSpecification);
+
+          // Add preview model layer (semi-transparent)
+          map.current.addLayer({
+            id: "model-preview-layer",
+            type: "model",
+            source: "model-preview",
+            layout: {
+              "model-id": ["get", "model-uri"],
+            },
+            paint: {
+              "model-opacity": 0.5, // Half opacity for preview
+              "model-rotation": [["get", "rotationX"], ["get", "rotationY"], ["get", "rotationZ"]],
+              "model-scale": [["get", "scale"], ["get", "scale"], ["get", "scale"]],
+              "model-translation": [0, 0, ["get", "height"]],
+              "model-cast-shadows": false, // No shadows for preview
+              "model-emissive-strength": 0.3,
             },
           } as mapboxgl.LayerSpecification);
 
@@ -1339,6 +1430,7 @@ export default function MapPage() {
 
       map.current.on("click", handleBuildingClick);
       map.current.on("click", handleModelPlacement);
+      map.current.on("mousemove", handleMouseMove);
 
       // Update gizmo position when map moves
       map.current.on("move", () => {
@@ -1351,7 +1443,7 @@ export default function MapPage() {
         }
       });
     }
-  }, [handleBuildingClick, handleDrawCreate, handleModelPlacement, handleSearch]);
+  }, [handleBuildingClick, handleDrawCreate, handleModelPlacement, handleMouseMove, handleSearch]);
 
   // Update cursor based on active tool and placement mode
   useEffect(() => {
