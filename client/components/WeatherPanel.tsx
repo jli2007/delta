@@ -14,7 +14,7 @@ interface WeatherPanelProps {
 
 export function WeatherPanel({ lightMode, onToggleLightMode, weather, onWeatherChange }: WeatherPanelProps) {
   return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 p-3 shadow-xl">
+    <div data-tutorial="weather-panel" className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 p-3 shadow-xl">
       <button
         onClick={onToggleLightMode}
         className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all w-10 bg-white/20 text-white shadow-lg"
