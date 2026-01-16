@@ -17,7 +17,7 @@ import { TransformGizmo } from "@/components/TransformGizmo";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchResultPopup } from "@/components/SearchResultPopup";
 import { MapControls } from "@/components/MapControls";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { GitHubLogoIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
 
 interface SelectedBuilding {
   id: string | number;
@@ -1556,6 +1556,17 @@ export default function MapPage() {
         className="absolute top-4 left-4 z-10 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all"
       >
         <GitHubLogoIcon width={20} height={20} />
+      </a>
+
+      {/* Bug Report button - below GitHub button */}
+      <a
+        href="https://github.com/jli2007/delta/issues/new"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-20 left-4 z-10 p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white/60 hover:text-white hover:bg-black/60 transition-all"
+        title="Report a bug"
+      >
+        <ExclamationTriangleIcon width={20} height={20} />
       </a>
 
       <Toolbar
