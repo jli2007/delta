@@ -180,8 +180,6 @@ export default function MapPage() {
     qa_data?: Record<string, unknown>;
   } | null>(null);
   
-  // Search pin marker
-  const searchPinRef = useRef<mapboxgl.Marker | null>(null);
 
   // Model transform history for undo/redo
   const [modelHistory, setModelHistory] = useState<InsertedModel[]>([]);
@@ -220,12 +218,7 @@ export default function MapPage() {
       }
     }
 
-    // Hide search pin when switching tools
-    if (searchPinRef.current) {
-      searchPinRef.current.remove();
-      searchPinRef.current = null;
-    }
-    // Clear search highlight
+    // Clear search highlight when switching tools
     if (map.current) {
       const source = map.current.getSource("search-target") as mapboxgl.GeoJSONSource;
       if (source) {
@@ -421,97 +414,6 @@ export default function MapPage() {
     }
   }, []);
 
-  // Show pin marker at coordinates
-  const showSearchPin = useCallback((coordinates: [number, number]) => {
-    if (!map.current) return;
-
-    // Remove existing pin
-    if (searchPinRef.current) {
-      searchPinRef.current.remove();
-    }
-    
-    // Create custom pin element
-    const pinEl = document.createElement("div");
-    pinEl.style.zIndex = "1000";
-    pinEl.innerHTML = `
-      <div class="search-pin-marker" style="
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        animation: searchPinBounce 0.6s ease-out;
-        cursor: pointer;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
-      ">
-        <div style="
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 3px solid white;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        ">
-          <svg style="transform: rotate(45deg);" width="18" height="18" viewBox="0 0 24 24" fill="white">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-        </div>
-        <div style="
-          width: 0;
-          height: 0;
-          border-left: 8px solid transparent;
-          border-right: 8px solid transparent;
-          border-top: 12px solid #d97706;
-          margin-top: -2px;
-        "></div>
-      </div>
-    `;
-    
-    // Add bounce animation style
-    if (!document.getElementById("search-pin-styles")) {
-      const style = document.createElement("style");
-      style.id = "search-pin-styles";
-      style.textContent = `
-        @keyframes searchPinBounce {
-          0% { transform: translateY(-80px); opacity: 0; }
-          60% { transform: translateY(5px); opacity: 1; }
-          80% { transform: translateY(-3px); }
-          100% { transform: translateY(0); }
-        }
-        .search-pin-marker:hover {
-          transform: scale(1.1);
-          transition: transform 0.2s ease;
-        }
-        .mapboxgl-marker { z-index: 1000 !important; }
-      `;
-      document.head.appendChild(style);
-    }
-    
-    searchPinRef.current = new mapboxgl.Marker({
-      element: pinEl,
-      anchor: "bottom",
-      offset: [0, -10],
-    })
-      .setLngLat(coordinates)
-      .addTo(map.current);
-  }, []);
-
-  // Hide search pin
-  const hideSearchPin = useCallback(() => {
-    if (searchPinRef.current) {
-      searchPinRef.current.remove();
-      searchPinRef.current = null;
-    }
-    // Also clear the search target highlight
-    if (map.current) {
-      const source = map.current.getSource("search-target") as mapboxgl.GeoJSONSource;
-      if (source) {
-        source.setData({ type: "FeatureCollection", features: [] });
-      }
-    }
-  }, []);
 
   // Dispatch agentic actions based on search result
   const dispatchAgentAction = useCallback((result: typeof searchResult) => {
@@ -710,15 +612,6 @@ export default function MapPage() {
         }
       }
       
-      // Show pin marker at coordinates (for any fly-to action)
-      if (data.coordinates && data.should_fly_to) {
-        // Small delay to let the fly animation start first
-        setTimeout(() => {
-          showSearchPin(data.coordinates as [number, number]);
-        }, 500);
-      } else {
-        hideSearchPin();
-      }
     } catch (error) {
       console.error("Search error:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1422,10 +1315,13 @@ export default function MapPage() {
             },
           } as mapboxgl.LayerSpecification);
 
-          // Model Loading failure catch
+          // Model Loading failure catch - only trigger if user has inserted models
           map.current.on("error", (e) => {
             const errorMsg = e.error?.message || "";
             if (errorMsg.includes("meshes is not iterable") || errorMsg.includes("t1.json")) {
+              // Only show alert if user actually has inserted models
+              if (insertedModelsRef.current.length === 0) return;
+
               console.error("Model loading error - GLB file may be malformed:", e);
 
               // Find and remove the problematic model
@@ -1678,7 +1574,6 @@ export default function MapPage() {
           result={searchResult}
           onClose={() => {
             setSearchResult(null);
-            hideSearchPin();
           }}
           onCandidateClick={(candidate) => {
             // Calculate center of candidate polygon using bbox
@@ -1704,9 +1599,6 @@ export default function MapPage() {
                   });
                 }
                 
-                // Show pin at candidate location
-                showSearchPin(candidateCenter);
-
                 // Update search result to show this candidate as target
                 setSearchResult({
                   ...searchResult,

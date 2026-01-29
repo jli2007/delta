@@ -11,57 +11,68 @@ class OpenAIService:
     """Service for OpenAI API interactions."""
 
     SEARCH_INTENT_PROMPT = """You are an intelligent map search assistant. Parse user queries to understand their intent.
+Users may have typos, misspellings, or use informal language. Always correct and interpret their intent.
 
 Analyze the query and extract:
 1. **action**: One of:
-   - "navigate" - User wants to go to a specific named location OR a famous landmark/structure (e.g., "take me to Paris", "go to Empire State Building", "tallest building in Toronto")
-   - "find_building" - User wants to find a building by characteristics in the current view (e.g., "tallest building here", "biggest footprint")
-   - "search_area" - User wants to explore an area (e.g., "what buildings are here")
+   - "navigate" - User wants to go to a specific location, landmark, or a building you can identify by name using your world knowledge (e.g., "take me to Paris", "6th tallest building in the world", "teh eifel tower")
+   - "find_building" - User wants to find a building by characteristics in the CURRENT VIEW only (e.g., "tallest building here", "biggest footprint nearby")
+   - "search_area" - User wants to explore the current area (e.g., "what buildings are here")
+   - "set_weather" - User wants to change weather (e.g., "make it rain", "snow", "clear weather")
+   - "set_time" - User wants to change time of day (e.g., "night mode", "make it dark", "daytime")
+   - "camera_control" - User wants to adjust camera (e.g., "zoom in", "bird's eye", "rotate")
+   - "delete_building" - User wants to remove a building (e.g., "delete the CN Tower")
+   - "question" - User is asking a question about a place (e.g., "how tall is the Burj Khalifa?")
 
-IMPORTANT: If the user asks for the "tallest building in [city]" or similar,
-and that city has a famous iconic tall structure (like CN Tower in Toronto,
-Burj Khalifa in Dubai, Empire State Building in NYC, Eiffel Tower in Paris, etc.),
-use "navigate" action with the landmark name as location_query.
+CRITICAL RULES:
+- USE YOUR WORLD KNOWLEDGE. If a user asks for "the Nth tallest building in the world", "the oldest cathedral in Europe", or any factual query, look up the answer from your knowledge and use "navigate" with the specific building/landmark name.
+- ALWAYS correct typos and misspellings. "tke me to Prais" means "take me to Paris". "eifel twoer" means "Eiffel Tower".
+- If the query references a specific named place, famous building, or identifiable landmark, ALWAYS use "navigate" with the resolved name.
+- Only use "find_building" when the user explicitly wants to search the CURRENT viewport (e.g., "tallest here", "biggest around me").
+- For VAGUE or ABSTRACT queries like "take me somewhere with good sunrises", "a beautiful beach", "somewhere cold", "a romantic city" — you MUST still resolve this to a REAL, SPECIFIC location using your world knowledge. Pick the best real-world match. NEVER return null for location_query on a navigate action. Examples: "good sunrises" -> "Santorini, Greece", "beautiful beach" -> "Whitehaven Beach, Australia", "somewhere cold" -> "Tromsø, Norway".
+- location_query must NEVER be null when action is "navigate". Always resolve to a real place.
 
-2. **location_query**: The location mentioned (city, landmark, address, neighborhood)
-   - For famous landmarks, include the landmark name: "CN Tower, Toronto", "Burj Khalifa, Dubai"
-   - Extract exact location names: "Central Park", "Tokyo", "Empire State Building"
-   - If relative ("near here", "in this area", "around me"), set to null
+2. **location_query**: The corrected, resolved location name.
+   - For rankings/facts, resolve to the actual name: "6th tallest building" -> "Goldin Finance 117, Tianjin"
+   - For typos, correct them: "empyre state bilding" -> "Empire State Building, New York"
+   - For landmarks, include city: "CN Tower, Toronto", "Burj Khalifa, Dubai"
+   - If relative ("near here", "in this area"), set to null
 
-3. **building_attributes**: For building searches (not navigation), extract:
-   - sort_by: "height" (tallest), "area" (biggest footprint), "underdeveloped" (large footprint + low height), or null
+3. **building_attributes**: For find_building searches only:
+   - sort_by: "height", "area", "underdeveloped", or null
    - building_type: "commercial", "residential", "any" (default: "any")
-   - limit: number of results wanted (default: 5)
+   - limit: number of results (default: 5)
 
 4. **search_radius_km**: If proximity search mentioned ("within 2km", "nearby" = 1km)
 
+5. **weather_settings**: For set_weather: {"type": "rain|snow|clear"}
+6. **time_settings**: For set_time: {"preset": "day|night"}
+7. **camera_settings**: For camera_control: {"zoom_delta": number, "pitch": number, "bearing_delta": number}
+8. **question_context**: For questions: {"target_name": "building name if mentioned"}
+
 Respond in JSON format:
 {
-    "action": "navigate|find_building|search_area",
+    "action": "navigate|find_building|search_area|set_weather|set_time|camera_control|delete_building|question",
     "location_query": "string or null",
     "building_attributes": {"sort_by": "height|area|underdeveloped|null", "building_type": "any", "limit": 5},
     "search_radius_km": number or null,
-    "reasoning": "Brief explanation of your interpretation"
+    "reasoning": "Brief explanation"
 }
 
 Examples:
-- "take me to the Eiffel Tower" -> {"action": "navigate", "location_query": "Eiffel Tower, Paris", "building_attributes": null, "search_radius_km": null, "reasoning": "Direct navigation to landmark"}
-- "find the tallest building" -> {"action": "find_building", "location_query": null, "building_attributes": {"sort_by": "height", "building_type": "any", "limit": 5}, "search_radius_km": null, "reasoning": "Find tallest in current view"}
-- "tallest building in Toronto" -> {"action": "navigate", "location_query": "CN Tower, Toronto",
-  "building_attributes": null, "search_radius_km": null,
-  "reasoning": "CN Tower is the tallest structure in Toronto"}
-- "tallest building in Dubai" -> {"action": "navigate", "location_query": "Burj Khalifa, Dubai",
-  "building_attributes": null, "search_radius_km": null,
-  "reasoning": "Burj Khalifa is the tallest building in Dubai"}
-- "tallest building near Central Park" -> {"action": "find_building",
-  "location_query": "Central Park, New York",
-  "building_attributes": {"sort_by": "height", "building_type": "any", "limit": 5},
-  "search_radius_km": 1, "reasoning": "Find tallest building near Central Park"}
-- "take me to underdeveloped building" -> {"action": "find_building",
-  "location_query": null,
-  "building_attributes": {"sort_by": "underdeveloped", "building_type": "any", "limit": 5},
-  "search_radius_km": null, "reasoning": "Find underdeveloped buildings in current view"}
-- "go to san francisco" -> {"action": "navigate", "location_query": "San Francisco", "building_attributes": null, "search_radius_km": null, "reasoning": "Navigate to city"}"""
+- "take me to the Eiffel Tower" -> {"action": "navigate", "location_query": "Eiffel Tower, Paris", ...}
+- "tke me to prais" -> {"action": "navigate", "location_query": "Paris, France", "reasoning": "Corrected typos: 'tke' -> 'take', 'prais' -> 'Paris'"}
+- "6th tallest building in the world" -> {"action": "navigate", "location_query": "Goldin Finance 117, Tianjin, China", "reasoning": "Goldin Finance 117 (530m) is the 6th tallest building in the world"}
+- "oldest cathedral in europe" -> {"action": "navigate", "location_query": "Cathedral of Trier, Germany", "reasoning": "The Cathedral of Trier is considered the oldest cathedral in Europe"}
+- "tallest building in Toronto" -> {"action": "navigate", "location_query": "CN Tower, Toronto", ...}
+- "tallest building here" -> {"action": "find_building", "location_query": null, "building_attributes": {"sort_by": "height", ...}, "reasoning": "Find tallest in current view"}
+- "make it rain" -> {"action": "set_weather", "weather_settings": {"type": "rain"}, ...}
+- "night mode" -> {"action": "set_time", "time_settings": {"preset": "night"}, ...}
+- "zoom in" -> {"action": "camera_control", "camera_settings": {"zoom_delta": 2}, ...}
+- "delete the cn tower" -> {"action": "delete_building", "location_query": "CN Tower, Toronto", ...}
+- "how tall is big ben" -> {"action": "question", "question_context": {"target_name": "Big Ben, London"}, ...}
+- "take me somewhere with good sunrises" -> {"action": "navigate", "location_query": "Santorini, Greece", "reasoning": "Santorini is world-famous for its sunrises and sunsets"}
+- "a beautiful old city" -> {"action": "navigate", "location_query": "Prague, Czech Republic", "reasoning": "Prague is renowned for its beautiful old-world architecture"}"""
 
     ANSWER_GENERATION_PROMPT = """You are a helpful map assistant. Generate a brief, informative response about the search result.
 

@@ -555,15 +555,8 @@ async def agentic_search(request: SearchRequest):
             # Pure navigation - geocode and return coordinates
             location_query = intent.get("location_query")
             if not location_query:
-                return {
-                    "intent": intent,
-                    "answer": "I couldn't determine where you want to go. Please be more specific.",
-                    "coordinates": None,
-                    "target": None,
-                    "candidates": [],
-                    "should_fly_to": False,
-                    "zoom_level": None
-                }
+                # Fallback: try geocoding the raw query directly
+                location_query = request.query
 
             location = await geocoding_svc.geocode(location_query)
             if not location:
